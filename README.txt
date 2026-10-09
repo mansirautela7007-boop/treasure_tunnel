@@ -1,0 +1,21 @@
+TREASURE TUNNEL – Integers adventure (HTML, CSS, JavaScript)
+
+Open index.html in Chrome or Edge to play. Images load from the assets folder, so keep the folders together.
+For a single file you can share, use treasure_tunnel.html (everything is built in).
+
+FILES
+index.html        Page structure
+css/style.css     All styles and micro-animations
+js/data.js        Every line of story and game script, levels and puzzles (edit text here)
+js/audio.js       Sound effects (made in the browser, no audio files) and voice (browser speech)
+js/game.js        Game engine: story scenes, number line, keys, map mysteries, effects
+assets/           Your images, compressed to WebP
+
+EDITING
+- Change dialogue, equations or hints in js/data.js. answer = start + delta.
+- Menu button (top right) lets you jump to any chapter for testing.
+- Keyboard: digits, '-' for negative, Backspace, Enter = GO, arrows for direction, Enter/Space = next.
+
+NOTES
+- The voice uses the browser's built-in speech, so it sounds different on each device.
+- Fonts (Lilita One, Baloo 2) load from Google Fonts; without internet a fallback font is used.

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Treasure Tunnel – An Integers Adventure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Lilita+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage" aria-label="Treasure Tunnel game">
+    <div id="bgA" class="bg"></div>
+    <div id="bgB" class="bg"></div>
+    <div id="flare"></div>
+    <div id="world"></div>
+    <div id="nlWrap"><div id="nl"></div></div>
+
+    <div id="mapView">
+      <div id="mapPieces"></div>
+      <svg id="mapPaths" viewBox="0 0 1200 800"></svg>
+      <div id="mapSeals"></div>
+      <div id="mapToken"></div>
+    </div>
+
+    <canvas id="fx" width="1280" height="720"></canvas>
+
+    <div id="ui">
+      <div id="hud">
+        <div id="slots" aria-label="Collected items"></div>
+        <div id="levelName"></div>
+        <div class="hud-right">
+          <div id="gems" title="Gems for first-try answers"><span class="gem-ico"></span><span id="gemCount">0</span></div>
+          <button class="icon-btn" id="btnVoice" aria-label="Voice on or off"></button>
+          <button class="icon-btn" id="btnSound" aria-label="Sound on or off"></button>
+          <button class="icon-btn" id="btnPause" aria-label="Menu"></button>
+        </div>
+      </div>
+
+      <div id="tablet" aria-live="polite"></div>
+      <div id="ruleChip"></div>
+      <div id="hintArrow"></div>
+      <div id="miniLine"></div>
+      <div id="demo"></div>
+
+      <div id="bubble">
+        <img class="av" alt="">
+        <div class="bubble-body">
+          <div class="who"></div>
+          <div class="txt" aria-live="polite"></div>
+        </div>
+        <button class="replay" id="btnReplay" aria-label="Hear it again"></button>
+        <button class="next" id="btnNext">Next</button>
+      </div>
+
+      <div id="tray" aria-label="Number pad">
+        <div class="signs">
+          <button class="k sign neg" data-k="-" aria-label="Negative">−</button>
+          <button class="k sign pos" data-k="+" aria-label="Positive">+</button>
+        </div>
+        <div id="display" class="display" aria-live="polite"><span class="ph">?</span></div>
+        <div class="digits"></div>
+        <button class="k back" data-k="back" aria-label="Delete">⌫</button>
+        <button class="k go" data-k="go" id="btnGo">GO!</button>
+      </div>
+
+      <div id="dirPick">
+        <button data-dir="left" aria-label="Move left"><span class="arr">◀</span> Left</button>
+        <button data-dir="right" aria-label="Move right">Right <span class="arr">▶</span></button>
+      </div>
+
+      <button id="btnContinue" class="bigbtn">Continue</button>
+      <div id="toast"></div>
+      <div id="tapHint">Tap to continue</div>
+    </div>
+
+    <div id="title" class="overlay">
+      <div class="title-glow"></div>
+      <div class="logo">
+        <div class="logo-key"></div>
+        <h1><span>Treasure</span><span>Tunnel</span></h1>
+        <p>An integers adventure on the number line</p>
+      </div>
+      <button id="btnStart" class="bigbtn huge">Start the adventure</button>
+      <p class="title-note">Sound on for the best adventure</p>
+    </div>
+
+    <div id="pause" class="overlay modal" role="dialog" aria-label="Menu">
+      <div class="panel">
+        <h2>Paused</h2>
+        <button class="bigbtn" data-act="resume">Back to the game</button>
+        <div class="row">
+          <button class="pill" data-act="sound"></button>
+          <button class="pill" data-act="voice"></button>
+        </div>
+        <h3>Jump to a chapter</h3>
+        <div class="chapters">
+          <button class="pill" data-go="story">Story</button>
+          <button class="pill" data-go="0">Amber Tunnel</button>
+          <button class="pill" data-go="1">Shadow Chamber</button>
+          <button class="pill" data-go="2">Crystal Cavern</button>
+          <button class="pill" data-go="end">Treasure</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="badgeModal" class="overlay modal" role="dialog" aria-label="Badge earned">
+      <div class="panel badge-panel">
+        <div class="rays"></div>
+        <div class="badge-art"></div>
+        <h2 class="badge-name"></h2>
+        <p class="badge-sub"></p>
+        <button class="bigbtn" id="btnBadge">Next chamber</button>
+      </div>
+    </div>
+
+    <div id="final" class="overlay">
+      <div class="panel final-panel">
+        <div class="rays"></div>
+        <div class="badge-art"></div>
+        <h2>True Treasure Tunnel Explorer</h2>
+        <div class="final-stats"></div>
+        <button class="bigbtn" id="btnAgain">Play again</button>
+      </div>
+    </div>
+  </div>
+  <div id="rotate"><div class="rot-ico">📱</div><p>Turn your device sideways to play</p></div>
+</div>
+<script src="js/data.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
