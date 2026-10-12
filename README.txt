@@ -14,6 +14,9 @@ assets/           Your images, compressed to WebP
 EDITING
 - Change dialogue, equations or hints in js/data.js. answer = start + delta.
 - Menu button (top right) lets you jump to any chapter for testing.
+- QA panel: tap the QA button (top right) or press Q to jump to any step of any chamber
+  (intro, each key, map unlock, each map puzzle, path reveal, badge). Auto-solve (or N) answers
+  the current question or presses Next. Set QA_PANEL = false at the end of js/data.js before release.
 - Keyboard: digits, '-' for negative, Backspace, Enter = GO, arrows for direction, Enter/Space = next.
 
 NOTES

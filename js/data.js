@@ -244,3 +244,6 @@ const UNLOCK = {
 };
 
 const FINAL_BADGE = { name: 'True Treasure Tunnel Explorer', color: '#F5C542', dark: '#9A6B00', icon: 'chest' };
+
+/* QA panel: Q opens it, N auto-solves. Set to false before release to hide it. */
+const QA_PANEL = true;

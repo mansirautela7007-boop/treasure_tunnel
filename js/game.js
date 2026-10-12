@@ -452,6 +452,11 @@ $('#dirPick').addEventListener('click', e => { const b = e.target.closest('butto
 
 /* ---------- keyboard ---------- */
 addEventListener('keydown', e => {
+  if (QA_PANEL && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (e.key === 'q' || e.key === 'Q') { e.preventDefault(); QA.toggle(); return; }
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); QA.auto(); return; }
+    if (QA.isOpen) { if (e.key === 'Escape') QA.close(); return; }
+  }
   if ($('#pause').classList.contains('on')) { if (e.key === 'Escape') closeMenu(); return; }
   if (Dial.active) {
     let k = null;
@@ -638,12 +643,14 @@ async function playScenes(list) {
 }
 
 async function runStory() {
+  QA.at('story');
   await playScenes(STORY_INTRO);
   await runHowTo();
 }
 
 /* ---------- how to play ---------- */
 async function runHowTo() {
+  QA.at('howto');
   clearActors(); clearProps(); setBg('bg_tunnel');
   const d = $('#demo');
   for (let i = 0; i < HOW_TO_PLAY.length; i++) {
@@ -718,12 +725,14 @@ async function teach(L) {
   NL.pose('explorer_idle'); NL.face(1);
 }
 
-async function keyHunt(L) {
+async function keyHunt(L, from = 0) {
   const lvl = LEVELS[L];
   HUD.keys(lvl.keys.length); setRules(L);
-  for (let i = 0; i < lvl.keys.length; i++) {
+  for (let i = 0; i < from; i++) HUD.fill(i);
+  for (let i = from; i < lvl.keys.length; i++) {
     const it = lvl.keys[i], ans = it.start + it.delta;
     let tries = 0;
+    QA.at(`${L}:keys:${i}`, it.delta > 0 ? 'right' : 'left', ans);
     NL.resetMarks(); Dial.clear(); Tablet.eq(it.eq);
     if (NL.pos !== it.start) await NL.teleport(it.start); else NL.face(1);
     NL.markStart(it.start);
@@ -811,7 +820,7 @@ async function keySuccess(L, i, it, ans, firstTry) {
   streakHit(firstTry);
   await wait(1000);
   k.classList.remove('on');
-  await fly(KEY_SVG, stagePos(k), HUD.slotPos(i), 800, 70);
+  const r = RUN; await fly(KEY_SVG, stagePos(k), HUD.slotPos(i), 800, 70); guard(r);
   HUD.fill(i); Sound.fx.coin();
   NL.pose('explorer_thumbsup');
   await say('wizard', `Correct! You found it. The explorer reached ${numHTML(ans)}. The key is right here.`, 'left');
@@ -879,18 +888,24 @@ function showHintArrow(dir) {
   Sound.fx.whoosh();
 }
 
-async function mysteries(L) {
-  const lvl = LEVELS[L];
+function mapScene() {
   $('#nlWrap').classList.remove('on'); setBg('bg_map_table');
   if (!$('#mapView').classList.contains('on')) { MapView.build(); MapView.place(310, 158, .55, true); MapView.show(); }
-  MapView.place(310, 158, .55); setRules(L);
+  MapView.place(310, 158, .55);
   actor('exp', { img: 'explorer_idle', x: 1140, y: 610, h: 320, cls: 'idle' });
+}
+
+async function mysteries(L, from = 0) {
+  const lvl = LEVELS[L];
+  mapScene(); setRules(L);
   HUD.seals(lvl.mysteries.length);
-  for (const line of lvl.mapIntro) { bubble(line.who, line.text, 'side'); await nextTap(); }
+  if (from === 0) for (const line of lvl.mapIntro) { bubble(line.who, line.text, 'side'); await nextTap(); }
   MapView.seals(L); await wait(1100);
-  for (let j = 0; j < lvl.mysteries.length; j++) {
+  for (let j = 0; j < from; j++) { const s = MapView.seal(j); s.classList.add('done'); s.textContent = '★'; HUD.fill(j); }
+  for (let j = from; j < lvl.mysteries.length; j++) {
     const m = lvl.mysteries[j], ans = m.start + m.delta;
     let tries = 0;
+    QA.at(`${L}:map:${j}`, null, ans);
     Dial.clear(); Tablet.eq(m.eq); $('#hintArrow').classList.remove('on'); $('#miniLine').classList.remove('on');
     const seal = MapView.seal(j); seal.classList.add('active');
     actor('exp', { img: 'explorer_idle' });
@@ -942,6 +957,7 @@ async function mysteries(L) {
 
 async function revealed(L) {
   const lvl = LEVELS[L], rv = lvl.revealed;
+  if (!$('#mapView').classList.contains('on')) mapScene();
   Tablet.rule(rv.ost); $('#mapPaths').classList.add('allglow');
   FX.confetti('huge'); Sound.fx.fanfare(); toast(rv.ost, true);
   await say('wizard', rv.wizard, 'side');
@@ -980,23 +996,29 @@ async function badge(L) {
   m.classList.remove('on');
 }
 
-async function runLevel(L) {
-  S.level = L; S.levelGems[L] = 0; S.piecesOpen = L; S.pathsOpen = [0, 1, 2].map(i => (i < L ? 4 : 0));
+// a level can start at any step (used by the QA panel); i = which key or map puzzle
+const STEPS = ['teach', 'keys', 'unlock', 'map', 'reveal', 'badge'];
+async function runLevel(L, step = 'teach', i = 0) {
+  const from = STEPS.indexOf(step), lvl = LEVELS[L];
+  S.level = L; S.levelGems[L] = 0; S.piecesOpen = from >= 3 ? L + 1 : L;
+  S.pathsOpen = [0, 1, 2].map(k => (k < L ? 4 : k > L ? 0 : from >= 4 ? 4 : from === 3 ? i : 0));
   resetUI();
-  const lvl = LEVELS[L];
   setBg(lvl.bg); NL.build(lvl);
   HUD.level(`Chamber ${L + 1}: ${lvl.name}`);
-  if (L > 0) { toast(lvl.name, true); Sound.fx.whoosh(); await wait(1200); }
-  await teach(L);
-  await keyHunt(L);
-  await unlock(L);
-  await mysteries(L);
-  await revealed(L);
-  await badge(L);
+  if (L > 0 && from === 0) { toast(lvl.name, true); Sound.fx.whoosh(); await wait(1200); }
+  if (from <= 0) { QA.at(`${L}:teach:0`); await teach(L); }
+  if (from <= 1) await keyHunt(L, from === 1 ? i : 0);
+  if (from === 2) { HUD.keys(lvl.keys.length); lvl.keys.forEach((_, k) => HUD.fill(k)); }
+  if (from <= 2) { QA.at(`${L}:unlock:0`); await unlock(L); }
+  if (from <= 3) await mysteries(L, from === 3 ? i : 0);
+  if (from >= 4) { HUD.seals(lvl.mysteries.length); lvl.mysteries.forEach((_, k) => HUD.fill(k)); }
+  if (from <= 4) { QA.at(`${L}:reveal:0`); await revealed(L); }
+  if (from === 5) mapScene();
+  QA.at(`${L}:badge:0`); await badge(L);
 }
 
 async function runEnding() {
-  resetUI(); S.piecesOpen = 3;
+  resetUI(); S.piecesOpen = 3; QA.at('end');
   await playScenes(STORY_END);
   const f = $('#final');
   f.querySelector('.badge-art').innerHTML = badgeSVG(FINAL_BADGE);
@@ -1005,12 +1027,13 @@ async function runEnding() {
 }
 
 /* ---------- chapters ---------- */
-async function goChapter(c) {
+async function goChapter(c, step = 'teach', i = 0) {
   RUN++; resetUI();
   try {
     if (c === 'story') { S.gems = 0; setGems(); await runStory(); c = 0; }
+    if (c === 'howto') { await runHowTo(); c = 0; }
     if (c === 'end') { await runEnding(); return; }
-    for (let L = +c; L < LEVELS.length; L++) await runLevel(L);
+    for (let L = +c; L < LEVELS.length; L++) await (L === +c ? runLevel(L, step, i) : runLevel(L));
     await runEnding();
   } catch (e) { if (e !== CANCEL) console.error(e); }
 }
@@ -1037,9 +1060,79 @@ $('#pause').addEventListener('click', e => {
 });
 $('#btnAgain').addEventListener('click', () => { Sound.fx.tap(); showTitle(); });
 
+/* ---------- QA panel: jump to any step, auto-solve ---------- */
+const QA = (() => {
+  let cur = '', dir = null, ans = null, open = false, box = null;
+  const NAMES = { story: 'Story', howto: 'How to play', end: 'Treasure ending', teach: 'Intro', keys: 'Key', unlock: 'Unlock map', map: 'Map puzzle', reveal: 'Path reveal', badge: 'Badge' };
+  function label(id) {
+    if (!id) return 'Title screen';
+    const [L, step, i] = id.split(':');
+    if (!step) return NAMES[L];
+    const n = step === 'keys' || step === 'map' ? ` ${+i + 1}` : '';
+    return `Chamber ${+L + 1} · ${NAMES[step]}${n}`;
+  }
+  const chip = (id, text, title = '') => `<button class="qa-chip" data-qa="${id}"${title ? ` title="${title}"` : ''}>${text}</button>`;
+  function build() {
+    box = document.createElement('div'); box.id = 'qa';
+    box.innerHTML = `<button id="qaBtn" aria-label="Open QA panel">QA</button>
+      <aside id="qaPanel" role="dialog" aria-label="QA panel">
+        <header><div><b>QA panel</b><small id="qaNow"></small></div><button id="qaClose" aria-label="Close QA panel">✕</button></header>
+        <button id="qaAuto">Auto-solve / Next <kbd>N</kbd></button>
+        <section><h4>Story</h4><div class="qa-row">${chip('story', 'Intro story')}${chip('howto', 'How to play')}${chip('end', 'Treasure ending')}</div></section>
+        ${LEVELS.map((lvl, L) => `<section><h4>Chamber ${L + 1} · ${lvl.name}</h4>
+          <div class="qa-row">${chip(`${L}:teach:0`, 'Intro')}</div>
+          <div class="qa-row"><span>Keys</span>${lvl.keys.map((k, i) => chip(`${L}:keys:${i}`, i + 1, k.eq.replace(' = ?', ''))).join('')}</div>
+          <div class="qa-row">${chip(`${L}:unlock:0`, 'Unlock map')}</div>
+          <div class="qa-row"><span>Map</span>${lvl.mysteries.map((m, i) => chip(`${L}:map:${i}`, i + 1, m.eq.replace(' = ?', ''))).join('')}</div>
+          <div class="qa-row">${chip(`${L}:reveal:0`, 'Path reveal')}${chip(`${L}:badge:0`, 'Badge')}</div></section>`).join('')}
+        <p class="qa-tip"><kbd>Q</kbd> open or close · <kbd>N</kbd> auto-solve · <kbd>Esc</kbd> close</p>
+      </aside>`;
+    document.body.appendChild(box);
+    stage.appendChild($('#qaBtn')); stage.classList.add('has-qa');
+    $('#qaBtn').addEventListener('click', () => api.toggle());
+    $('#qaClose').addEventListener('click', () => api.close());
+    $('#qaAuto').addEventListener('click', () => api.auto());
+    $('#qaPanel').addEventListener('click', e => {
+      const b = e.target.closest('[data-qa]'); if (!b) return;
+      const [L, step, i] = b.dataset.qa.split(':');
+      Sound.init(); Sound.fx.tap(); closeMenu(); api.close();
+      goChapter(step ? +L : L, step, +i || 0);
+    });
+    paint();
+  }
+  function paint() {
+    if (!box) return;
+    $('#qaNow').textContent = `Now: ${label(cur)}`;
+    box.querySelectorAll('[data-qa]').forEach(b => b.classList.toggle('cur', b.dataset.qa === cur));
+  }
+  const api = {
+    get isOpen() { return open; },
+    at(id, d = null, a = null) { cur = id; dir = d; ans = a; paint(); },
+    toggle() { open ? api.close() : api.open(); },
+    open() { if (!box) return; open = true; box.classList.add('on'); Voice.stop(); },
+    close() { if (!box) return; open = false; box.classList.remove('on'); },
+    // answer whatever the game is waiting for, or press its Next/Continue button
+    auto() {
+      Sound.init();
+      if (dirResolver && dir) { const f = dirResolver; dirResolver = null; f(dir); return; }
+      if (Dial.active && ans !== null) {
+        Dial.clear(); if (ans < 0) Dial.key('-');
+        String(Math.abs(ans)).split('').forEach(d => Dial.key(d)); Dial.key('go'); return;
+      }
+      if (pending.next) { fireNext(); return; }
+      if (pending.cont) { $('#btnContinue').click(); return; }
+      if (pending.tapTarget) { pending.tapTarget(); return; }
+      if ($('#badgeModal').classList.contains('on')) { $('#btnBadge').click(); return; }
+      toast('Nothing to solve yet. Wait for the animation.', true);
+    },
+  };
+  if (QA_PANEL) build();
+  return api;
+})();
+
 /* ---------- title ---------- */
 function showTitle() {
-  RUN++; resetUI(); setBg('bg_entrance');
+  RUN++; resetUI(); setBg('bg_entrance'); QA.at('');
   $('#title').classList.add('on');
   $('#title .logo-key').innerHTML = KEY_SVG;
   actor('exp', { img: 'explorer_idle', x: 190, y: 735, h: 400, cls: 'idle' });
