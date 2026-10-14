@@ -3,11 +3,11 @@
    delta = signed movement on the number line (answer = start + delta). */
 
 const STORY_INTRO = [
-  { bg: 'bg_entrance', scene: 'hook', who: 'narrator',
+  { bg: 'bg_entrance', scene: 'hook', who: 'narrator', clip: 'narrator_1',
     text: 'Deep inside the Treasure Tunnel, an explorer is searching for hidden treasure.' },
-  { bg: 'bg_tunnel', scene: 'lostMap', who: 'narrator',
+  { bg: 'bg_tunnel', scene: 'lostMap', who: 'narrator', clip: 'narrator_2',
     text: 'But the map to the treasure had broken into pieces and scattered across the tunnel!' },
-  { bg: 'bg_tunnel', scene: 'worried', who: 'explorer',
+  { bg: 'bg_tunnel', scene: 'worried', who: 'narrator', clip: 'narrator_3',
     text: 'Uh-oh! I only have one piece of the map. How will I find the treasure now?' },
   { bg: 'bg_tunnel', scene: 'wizardAppears', who: 'wizard',
     text: 'Hahaha! Solve the puzzles to find the missing pieces of the treasure map.' },
@@ -40,13 +40,15 @@ const STORY_END = [
     text: 'Best treasure hunt ever!' },
 ];
 
-const OOPS_KEY = 'Oops! No key here. Look where the explorer stopped.';
+const OOPS_KEY = 'Oops! No key here. Count your steps and try again.';
 const OOPS_MAP = 'Oops! That didn’t reveal the path. Try again.';
 
 const LEVELS = [
   /* ---------------- LEVEL 1 ---------------- */
   {
-    name: 'Amber Tunnel', bg: 'bg_level1_amber_tunnel', ledge: 0.645,
+    name: 'Amber Tunnel', bg: 'bg_level1_amber_tunnel', ledge: 0.565,
+    // cavern look: floating platforms, top banner, arrow buttons + CHECK (art in assets/ui_*.webp when present)
+    theme: 'cavern', step: 128, explorerH: 165, submit: 'JUMP',
     badge: { name: 'Path Finder', color: '#F29A2E', dark: '#9A5410', icon: 'both' },
     rule: [['+', 'Add', 'right'], ['−', 'Subtract', 'left']],
     teach: [
@@ -58,24 +60,24 @@ const LEVELS = [
     keys: [
       { start: 0, delta: 3, eq: '0 + 3 = ?', cele: 'KEY FOUND!', size: 'small',
         vo: 'You will find your key when you add 3 steps to 0.',
-        wrong: [OOPS_KEY, 'Watch the explorer’s path again.', 'Look closely at where the explorer reaches.'],
-        idle: 'Follow the explorer and see where he reaches.' },
+        wrong: [OOPS_KEY, 'You’re adding, so move to the right.', 'Start at 0 and count 3 steps to the right.'],
+        idle: 'Count 3 steps from 0, then press JUMP.' },
       { start: 7, delta: -4, eq: '(+7) − 4 = ?', cele: '+1 KEY', size: 'small',
         vo: 'You will find your next key when you subtract 4 steps from 7.',
-        wrong: [OOPS_KEY, 'Watch the explorer’s path again.', 'Check where the explorer reaches after moving back.'],
-        idle: 'Watch carefully. Where does the explorer reach?' },
+        wrong: [OOPS_KEY, 'You’re subtracting, so move to the left.', 'Start at +7 and count 4 steps to the left.'],
+        idle: 'Count 4 steps back from +7, then press JUMP.' },
       { start: 10, delta: 7, eq: '(+10) + 7 = ?', cele: 'KEY COLLECTED!', size: 'medium',
         vo: 'You will find another key when you add 7 steps to 10.',
-        wrong: [OOPS_KEY, 'Watch the explorer’s path again.', 'Look closely at where the explorer reaches.'],
-        idle: 'Follow each step and find where the explorer reaches.' },
+        wrong: [OOPS_KEY, 'You’re adding, so move to the right.', 'Start at +10 and count 7 steps to the right.'],
+        idle: 'Count each step from +10, then press JUMP.' },
       { start: 1, delta: -8, eq: '(+1) − 8 = ?', cele: '+1 KEY', size: 'small',
         vo: 'You will find your next key when you subtract 8 steps from 1.',
-        wrong: [OOPS_KEY, 'Watch the explorer’s path again.', 'Keep counting until the explorer stops.'],
-        idle: 'Watch carefully as the explorer moves past 0.' },
+        wrong: [OOPS_KEY, 'You’re subtracting, so move to the left.', 'Start at +1 and count 8 steps to the left. Keep going past 0.'],
+        idle: 'Keep counting past 0, then press JUMP.' },
       { start: -7, delta: -7, eq: '(−7) − 7 = ?', cele: 'FINAL KEY FOUND!', size: 'big',
         vo: 'You will find your next key when you subtract 7 steps from −7.',
-        wrong: [OOPS_KEY, 'Watch the explorer’s path again.', 'Look where the explorer reaches after 7 steps.'],
-        idle: 'The last key is waiting! Follow the explorer carefully.' },
+        wrong: [OOPS_KEY, 'You’re subtracting, so move to the left.', 'Start at −7 and count 7 steps to the left.'],
+        idle: 'The last key is waiting! Count 7 steps, then press JUMP.' },
     ],
     mapIntro: [
       { who: 'explorer', text: 'I got it! I have the map to reach the treasure.' },
@@ -128,23 +130,23 @@ const LEVELS = [
       { start: -2, delta: -3, eq: '(−2) + (−3) = ?', cele: 'KEY FOUND!', size: 'small',
         vo: 'Explorer is at −2. You’re adding −3, so change direction and move 3 steps to the left. Where will the explorer reach?',
         wrong: [OOPS_KEY, 'Remember, adding a negative changes the direction. Move left.', 'Start at −2 and count 3 steps to the left.'],
-        idle: 'Follow the explorer’s path and find where he reaches.' },
+        idle: 'Count each step, then press JUMP where the key is.' },
       { start: 9, delta: -2, eq: '(+9) + (−2) = ?', cele: '+1 KEY', size: 'small',
         vo: 'Explorer is at +9. You’re adding −2. Change direction and move 2 steps to the left. Where will the explorer reach?',
         wrong: [OOPS_KEY, 'You’re adding a negative, so the explorer needs to move left.', 'Start at +9 and count 2 steps to the left.'],
-        idle: 'Watch which way the explorer moves when a negative is added.' },
+        idle: 'Which way does adding a negative take you? Move, then press JUMP.' },
       { start: -5, delta: -5, eq: '(−5) + (−5) = ?', cele: 'KEY COLLECTED!', size: 'medium',
         vo: 'Explorer is at −5. Add −5. Change direction and move 5 steps to the left. Where will the explorer reach?',
         wrong: [OOPS_KEY, 'Adding a negative sends the explorer to the left.', 'Start at −5 and count 5 steps to the left.'],
-        idle: 'Follow the path carefully and count each step.' },
-      { start: -11, delta: -4, eq: '(−11) + (−4) = ?', cele: '+1 KEY', size: 'small', askDir: true,
+        idle: 'Count each step carefully, then press JUMP.' },
+      { start: -11, delta: -4, eq: '(−11) + (−4) = ?', cele: '+1 KEY', size: 'small',
         vo: 'Explorer is at −11. You’re adding −4. Which way should he go? Follow the path and find the key.',
         wrong: [OOPS_KEY, 'Check the negative number being added. It changes the path to the left.', 'Start at −11 and count 4 steps to the left.'],
         idle: 'Remember the twist: add a negative, then move left.' },
-      { start: 15, delta: -4, eq: '(+15) + (−4) = ?', cele: 'FINAL KEY FOUND!', size: 'big', askDir: true,
+      { start: 15, delta: -4, eq: '(+15) + (−4) = ?', cele: 'FINAL KEY FOUND!', size: 'big',
         vo: 'Explorer is at +15. Add −4. Follow the mystery and find where the key is hidden.',
         wrong: [OOPS_KEY, 'Adding a negative changes the direction. The explorer moves left.', 'Start at +15 and count 4 steps to the left.'],
-        idle: 'The last key is waiting! Check the sign and follow the explorer.' },
+        idle: 'The last key is waiting! Check the sign, then move and JUMP.' },
     ],
     mapIntro: [
       { who: 'wizard', text: 'Wohoo! You found the map piece! But again the next path is still hidden. Solve the map mysteries to reveal it.' },
@@ -191,23 +193,23 @@ const LEVELS = [
       { start: -3, delta: 4, eq: '(−3) − (−4) = ?', cele: 'KEY FOUND!', size: 'small',
         vo: 'Explorer is at −3. You’re subtracting −4, so change direction and move 4 steps to the right. Where will the explorer reach?',
         wrong: [OOPS_KEY, 'Remember, subtracting a negative changes the direction. Move right.', 'Start at −3 and count 4 steps to the right.'],
-        idle: 'Follow the explorer’s path and find where he reaches.' },
+        idle: 'Count each step, then press JUMP where the key is.' },
       { start: 6, delta: -5, eq: '(+6) − (5) = ?', cele: '+1 KEY', size: 'small',
         vo: 'Explorer is at +6. You’re subtracting 5, so move 5 steps to the left. Where will the explorer reach?',
         wrong: [OOPS_KEY, 'This time we’re subtracting a positive number, so move left.', 'Start at +6 and count 5 steps to the left.'],
-        idle: 'Check the sign and follow the explorer carefully.' },
+        idle: 'Check the sign, then move and JUMP.' },
       { start: -5, delta: 13, eq: '(−5) − (−13) = ?', cele: 'KEY COLLECTED!', size: 'medium',
         vo: 'Explorer is at −5. You’re subtracting −13. Change direction and move 13 steps to the right. Where will the explorer reach?',
         wrong: [OOPS_KEY, 'Subtracting a negative changes the direction. Move right.', 'Start at −5 and count 13 steps to the right.'],
-        idle: 'Watch carefully. The explorer may cross 0.' },
-      { start: -11, delta: 6, eq: '(−11) − (−6) = ?', cele: '+1 KEY', size: 'small', askDir: true,
+        idle: 'You may cross 0. Keep counting, then JUMP.' },
+      { start: -11, delta: 6, eq: '(−11) − (−6) = ?', cele: '+1 KEY', size: 'small',
         vo: 'Explorer is at −11. You’re subtracting −6. Which way should he go? Follow the path and find the key.',
         wrong: [OOPS_KEY, 'Check the negative number being subtracted. It changes the direction to the right.', 'Start at −11 and count 6 steps to the right.'],
         idle: 'Remember the twist: subtract a negative, then move right.' },
-      { start: 15, delta: 4, eq: '(+15) − (−4) = ?', cele: 'FINAL KEY FOUND!', size: 'big', askDir: true,
+      { start: 15, delta: 4, eq: '(+15) − (−4) = ?', cele: 'FINAL KEY FOUND!', size: 'big',
         vo: 'Explorer is at +15. Subtract −4. Follow the mystery and find where the key is hidden.',
         wrong: [OOPS_KEY, 'Subtracting a negative changes the direction. The explorer moves right.', 'Start at +15 and count 4 steps to the right.'],
-        idle: 'The last key is waiting! Check the signs and follow the explorer.' },
+        idle: 'The last key is waiting! Check the signs, then move and JUMP.' },
     ],
     mapIntro: [
       { who: 'wizard', text: 'Wohoo! You found the map piece! But again, the next path is still hidden. Solve the map mysteries to reveal it.' },
@@ -247,3 +249,6 @@ const FINAL_BADGE = { name: 'True Treasure Tunnel Explorer', color: '#F5C542', d
 
 /* QA panel: Q opens it, N auto-solves. Set to false before release to hide it. */
 const QA_PANEL = true;
+
+/* Layout editor: E opens it. Edits show in the game while this is true. Set to false before release. */
+const EDITOR = true;

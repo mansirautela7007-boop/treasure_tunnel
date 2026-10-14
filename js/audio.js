@@ -116,10 +116,27 @@ const Voice = (() => {
       .replace(/Hahaha/g, 'Ha ha ha').replace(/Wohoo/g, 'Woo hoo');
   }
 
-  function say(text, who = 'narrator') {
+  // Recorded ElevenLabs clips (assets/audio/<clip>.mp3). Falls back to browser speech if a file is missing.
+  let clipEl = null;
+  const CLIP = n => (window.AUDIO && window.AUDIO[n]) || `assets/audio/${n}.mp3`;
+  function stopClip() { if (clipEl) { clipEl.onended = clipEl.onerror = null; clipEl.pause(); clipEl = null; } }
+
+  function say(text, who = 'narrator', clip = null) {
     return new Promise(res => {
       const est = Math.min(9000, 900 + text.length * 62);
-      if (!on || !synth) { setTimeout(res, Math.min(est, 2600)); return; }
+      stopClip();
+      if (!on) { setTimeout(res, Math.min(est, 2600)); return; }
+      if (clip) {
+        const a = new Audio(CLIP(clip)); clipEl = a;
+        let done = false; const fin = () => { if (!done) { done = true; res(); } };
+        a.onended = fin;
+        a.onerror = () => { if (clipEl === a) { clipEl = null; say(text, who).then(fin); } };
+        if (synth) synth.cancel();
+        const p = a.play(); if (p && p.catch) p.catch(() => a.onerror && a.onerror());
+        setTimeout(fin, 15000);
+        return;
+      }
+      if (!synth) { setTimeout(res, Math.min(est, 2600)); return; }
       synth.cancel();
       const u = new SpeechSynthesisUtterance(speakable(text));
       const p = VOICES[who] || VOICES.narrator;
@@ -133,8 +150,8 @@ const Voice = (() => {
   }
 
   return {
-    say, stop() { if (synth) synth.cancel(); },
+    say, stop() { stopClip(); if (synth) synth.cancel(); },
     get on() { return on; },
-    toggle() { on = !on; if (!on && synth) synth.cancel(); return on; },
+    toggle() { on = !on; if (!on) { stopClip(); if (synth) synth.cancel(); } return on; },
   };
 })();

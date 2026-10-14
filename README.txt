@@ -17,6 +17,10 @@ EDITING
 - QA panel: tap the QA button (top right) or press Q to jump to any step of any chamber
   (intro, each key, map unlock, each map puzzle, path reveal, badge). Auto-solve (or N) answers
   the current question or presses Next. Set QA_PANEL = false at the end of js/data.js before release.
+- Layout editor: tap the pencil button (top right) or press E. Click anything to select it; drag to move,
+  drag handles to resize, top dot to rotate, H / V to flip. Changes are saved in this browser and shown in
+  the game. Copy JSON / Download JSON gives exact positions (1280x720 stage px) to hand to an AI.
+  Set EDITOR = false at the end of js/data.js before release.
 - Keyboard: digits, '-' for negative, Backspace, Enter = GO, arrows for direction, Enter/Space = next.
 
 NOTES

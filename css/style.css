@@ -66,21 +66,21 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #nlWrap { position: absolute; left: 0; right: 0; top: 0; height: 0; display: none; }
 #nlWrap.on { display: block; }
 #nl { position: absolute; left: 0; top: 0; height: 90px; transition: transform var(--stepms, .45s) ease-in-out; will-change: transform; }
-.stone { position: absolute; top: 0; width: 98px; height: 52px; margin-left: -49px; border-radius: 14px 14px 18px 18px;
-  background: linear-gradient(#b9b4ad, #8a857e 55%, #6d6862); box-shadow: inset 0 4px 0 rgba(255,255,255,.35), inset 0 -5px 0 rgba(0,0,0,.25), 0 6px 0 #3d3934, 0 12px 14px rgba(0,0,0,.5);
-  display: flex; align-items: center; justify-content: center; transition: box-shadow .3s, background .3s; }
-.stone .lbl { font: 30px/1 'Lilita One', sans-serif; text-shadow: 0 2px 0 rgba(0,0,0,.7), 0 0 6px rgba(0,0,0,.5); opacity: 0; transform: scale(.4); transition: transform .35s cubic-bezier(.2,1.6,.4,1), opacity .3s; }
-.stone .dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: rgba(40,30,20,.55); box-shadow: inset 0 2px 0 rgba(0,0,0,.4); transition: opacity .2s; }
-.stone.show .lbl { opacity: 1; transform: none; }
-.stone.show .dot { opacity: 0; }
-.stone.zero { background: linear-gradient(#ffe48a, #e8b23a 55%, #b8801c); box-shadow: inset 0 4px 0 rgba(255,255,255,.55), inset 0 -5px 0 rgba(0,0,0,.2), 0 6px 0 #7a5410, 0 0 22px rgba(255,210,80,.55); }
-.stone.zero .lbl { color: #5a3a00; text-shadow: 0 1px 0 rgba(255,255,255,.6); }
-.stone.trail { box-shadow: inset 0 4px 0 rgba(255,255,255,.35), 0 6px 0 #3d3934, 0 0 0 4px var(--gold), 0 0 26px 6px rgba(255,213,74,.8); }
-.stone.land { background: linear-gradient(#fff1b0, #ffc94a 55%, #d99a1a); }
-.stone.miss { background: linear-gradient(#d9a6a6, #a86a6a 55%, #7a4848); }
+/* number line: cream stone tiles, every number shown, the explorer's tile glows */
+.stone { position: absolute; top: 0; width: 104px; height: 72px; margin-left: -52px; border-radius: 12px; box-sizing: border-box;
+  background: linear-gradient(#fbf0d6, #f1dcae 55%, #e2c48a); border: 3px solid #8a5a2b;
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.75), inset 0 -5px 0 rgba(150,95,40,.35), inset 0 0 0 3px rgba(255,248,225,.55), 0 6px 0 #5e3a17, 0 12px 14px rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center; transition: box-shadow .25s, background .25s, border-color .25s; }
+.stone .lbl { font: 40px/1 'Lilita One', sans-serif; color: #3b2412 !important; text-shadow: 0 1px 0 rgba(255,255,255,.7); }
+.stone .dot { display: none; }
+.stone.here { background: linear-gradient(#fff6c8, #ffd760 55%, #f2a922); border-color: #b06d0e;
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.8), inset 0 -5px 0 rgba(160,90,0,.35), 0 6px 0 #7a4a08, 0 0 0 3px rgba(255,220,110,.9), 0 0 30px 8px rgba(255,190,50,.75); }
+.stone.trail { border-color: #d48a10; box-shadow: inset 0 3px 0 rgba(255,255,255,.75), inset 0 -5px 0 rgba(150,95,40,.35), 0 6px 0 #5e3a17, 0 0 0 3px rgba(255,213,74,.9), 0 0 18px 3px rgba(255,200,70,.6); }
+.stone.land { background: linear-gradient(#fff6c8, #ffd760 55%, #f2a922); border-color: #b06d0e; }
+.stone.miss { background: linear-gradient(#ffd9d2, #f0a597 55%, #d9776a); border-color: #9a3a2c; }
 .stone.pulse { animation: stonePulse 1s ease-in-out infinite; }
-@keyframes stonePulse { 50% { box-shadow: 0 6px 0 #3d3934, 0 0 0 6px #fff, 0 0 34px 10px rgba(255,255,255,.8); } }
-.stone.start::after { content: 'START'; position: absolute; top: 60px; font: 15px 'Lilita One'; color: #fff; letter-spacing: .06em; background: rgba(0,0,0,.55); padding: 1px 8px; border-radius: 8px; }
+@keyframes stonePulse { 50% { box-shadow: 0 6px 0 #5e3a17, 0 0 0 6px #fff, 0 0 34px 10px rgba(255,255,255,.85); } }
+.stone.start::after { content: 'START'; position: absolute; top: 60px; font: 14px 'Lilita One'; color: #fff; letter-spacing: .06em; background: #5e3a17; border: 2px solid #f1dcae; padding: 0 8px; border-radius: 8px; }
 .pos { color: var(--pos); } .neg { color: var(--neg); } .zer { color: var(--zero); }
 
 .counter { position: absolute; top: -300px; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%;
@@ -264,14 +264,23 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 .display.shake { animation: shakeX .45s; border-color: #ff6b6b; }
 .display.good { border-color: var(--ok); box-shadow: 0 0 20px rgba(62,211,107,.8); }
 
-#dirPick { position: absolute; left: 50%; bottom: 20px; display: flex; gap: 30px; transform: translate(-50%, 160%); transition: transform .45s cubic-bezier(.2,1.3,.4,1); }
+/* move pad: Left / JUMP / Right on the number line */
+#dirPick { position: absolute; left: 50%; bottom: 18px; display: flex; align-items: flex-end; gap: 26px; padding: 14px 22px; border-radius: 34px;
+  background: linear-gradient(rgba(45,26,70,.92), rgba(24,13,38,.94)); border: 3px solid #e2a84b; box-shadow: 0 14px 40px rgba(0,0,0,.6);
+  transform: translate(-50%, 170%); transition: transform .45s cubic-bezier(.2,1.3,.4,1); }
 #dirPick.on { transform: translate(-50%, 0); }
-#dirPick button { width: 240px; height: 96px; border: none; border-radius: 26px; font: 38px 'Lilita One'; color: #fff;
-  background: linear-gradient(#b48cff, #7c3aed); box-shadow: 0 8px 0 #4c1d95, 0 12px 24px rgba(0,0,0,.5); animation: dirBob 1.4s ease-in-out infinite; }
-#dirPick button:nth-child(2) { animation-delay: .7s; }
-#dirPick button:active { transform: translateY(6px); box-shadow: 0 2px 0 #4c1d95; }
-#dirPick .arr { font-size: 30px; }
-@keyframes dirBob { 50% { transform: translateY(-4px); } }
+#dirPick.pulse { animation: padPulse .6s ease-in-out 2; }
+@keyframes padPulse { 50% { box-shadow: 0 0 0 6px rgba(255,213,74,.55), 0 14px 40px rgba(0,0,0,.6); } }
+#dirPick .mv { height: 92px; border: none; border-radius: 24px; font: 36px 'Lilita One'; color: #fff; cursor: pointer; transition: transform .08s, box-shadow .08s; }
+#dirPick .mv .arr { font-size: 28px; }
+#dirPick .left { width: 210px; background: linear-gradient(#8fdcff, #2f9be0); box-shadow: 0 8px 0 #135a8a, 0 12px 22px rgba(0,0,0,.45); text-shadow: 0 2px 0 #135a8a; }
+#dirPick .right { width: 210px; background: linear-gradient(#ffc27a, #f0832a); box-shadow: 0 8px 0 #9a4a0c, 0 12px 22px rgba(0,0,0,.45); text-shadow: 0 2px 0 #9a4a0c; }
+#dirPick .jump { width: 230px; height: 108px; font-size: 46px; color: #3a2200; background: linear-gradient(#fff0a8, #ffc83a 55%, #e89a10); box-shadow: 0 9px 0 #a8661b, 0 14px 26px rgba(0,0,0,.5); letter-spacing: .02em; }
+#dirPick.moved .jump { animation: jumpGlow 1.3s ease-in-out infinite; }
+@keyframes jumpGlow { 50% { box-shadow: 0 9px 0 #a8661b, 0 0 26px 6px rgba(255,213,74,.75); } }
+#dirPick .left:active, #dirPick .left.press { transform: translateY(6px); box-shadow: 0 2px 0 #135a8a; }
+#dirPick .right:active, #dirPick .right.press { transform: translateY(6px); box-shadow: 0 2px 0 #9a4a0c; }
+#dirPick .jump:active, #dirPick .jump.press { transform: translateY(7px); box-shadow: 0 2px 0 #a8661b; }
 
 .bigbtn { border: none; border-radius: 22px; padding: 14px 38px; font: 32px 'Lilita One'; color: #3a2200;
   background: linear-gradient(#ffe48a, #f2b23a); box-shadow: 0 7px 0 #a8661b, 0 12px 24px rgba(0,0,0,.45); transition: transform .1s; }
@@ -364,9 +373,10 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 }
 
 /* ---------- QA panel (testing only; QA_PANEL in data.js turns it off) ---------- */
-#qaBtn { position: absolute; right: 16px; top: 15px; z-index: 45; width: 50px; height: 50px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); background: rgba(36,22,52,.85); color: var(--gold); font: 16px 'Lilita One'; opacity: .6; cursor: pointer; }
-#qaBtn:hover, #qaBtn:focus-visible { opacity: 1; }
-#stage.has-qa .hud-right { margin-right: 60px; }
+#devBtns { position: absolute; right: 16px; top: 15px; z-index: 70; display: flex; gap: 10px; }
+#devBtns > button { width: 50px; height: 50px; padding: 0; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); background: rgba(36,22,52,.85); color: var(--gold); font: 16px 'Lilita One'; opacity: .6; cursor: pointer; }
+#devBtns > button:hover, #devBtns > button:focus-visible, #devBtns > button.active { opacity: 1; }
+#devBtns > button.active { background: var(--gold); color: var(--ink); border-color: #fff; }
 #qaPanel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 1001; width: min(340px, 92vw); overflow-y: auto; padding: 14px 16px 18px; background: rgba(28,16,42,.97); border-left: 3px solid #e2a84b; box-shadow: -10px 0 40px rgba(0,0,0,.6); color: #fff; font: 500 15px 'Baloo 2', system-ui, sans-serif; transform: translateX(105%); transition: transform .25s ease; }
 #qa.on #qaPanel { transform: none; }
 #qaPanel header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
@@ -383,3 +393,163 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 .qa-chip.cur { border-color: var(--gold); background: var(--gold); color: var(--ink); }
 .qa-tip { margin: 14px 0 0; color: rgba(255,255,255,.6); font-size: 13px; }
 #qaPanel kbd { padding: 0 5px; border: 1px solid currentColor; border-radius: 4px; font: 12px ui-monospace, monospace; opacity: .8; }
+
+/* ---------- layout editor (EDITOR in data.js turns it off) ---------- */
+#edBtn { font-size: 22px !important; }
+#edLayer { position: absolute; inset: 0; z-index: 60; display: none; cursor: crosshair; --hs: 12px; }
+#edLayer.on { display: block; }
+#edHover, #edSel { position: absolute; display: none; box-sizing: border-box; pointer-events: none; }
+#edHover { outline: 2px dashed rgba(108,203,255,.9); outline-offset: 0; }
+#edSel { outline: 2px solid #FFD54A; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+#edSel .ed-tag { position: absolute; left: 0; bottom: 100%; margin-bottom: 6px; padding: 1px 7px; border-radius: 6px; background: #FFD54A; color: #3B2412; font: 700 13px/1.5 ui-monospace, monospace; white-space: nowrap; }
+#edSel .ed-h, #edSel .ed-rot { position: absolute; width: var(--hs); height: var(--hs); margin: calc(var(--hs) / -2) 0 0 calc(var(--hs) / -2); background: #fff; border: 2px solid #E39B1F; box-sizing: border-box; pointer-events: auto; }
+#edSel .ed-rot { left: 50%; top: calc(var(--hs) * -2.6); border-radius: 50%; cursor: grab; }
+.ed-h.nw { left: 0; top: 0; cursor: nwse-resize; } .ed-h.n { left: 50%; top: 0; cursor: ns-resize; } .ed-h.ne { left: 100%; top: 0; cursor: nesw-resize; }
+.ed-h.e { left: 100%; top: 50%; cursor: ew-resize; } .ed-h.se { left: 100%; top: 100%; cursor: nwse-resize; } .ed-h.s { left: 50%; top: 100%; cursor: ns-resize; }
+.ed-h.sw { left: 0; top: 100%; cursor: nesw-resize; } .ed-h.w { left: 0; top: 50%; cursor: ew-resize; }
+#stage.ed-freeze *, #stage.ed-freeze *::before, #stage.ed-freeze *::after { animation-play-state: paused !important; transition: none !important; }
+
+#edPanel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 1002; width: min(300px, 92vw); overflow-y: auto; padding: 12px 14px 16px; box-sizing: border-box; background: rgba(28,16,42,.97); border-left: 3px solid #6CCBFF; box-shadow: -10px 0 40px rgba(0,0,0,.6); color: #fff; font: 500 14px 'Baloo 2', system-ui, sans-serif; display: none; }
+#edPanel.on { display: block; }
+#edPanel.left { right: auto; left: 0; border-left: 0; border-right: 3px solid #6CCBFF; }
+#edPanel header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+#edPanel header b { display: block; font: 21px 'Lilita One'; color: #6CCBFF; }
+#edPanel header small { display: block; color: #e8d6ff; font-size: 12px; line-height: 1.3; }
+#edPanel header span { display: flex; gap: 6px; flex: none; }
+#edPanel button { border: 1.5px solid rgba(255,255,255,.35); border-radius: 10px; background: rgba(255,255,255,.08); color: #fff; font: 600 13px 'Baloo 2', system-ui, sans-serif; padding: 4px 10px; cursor: pointer; }
+#edPanel button:hover { border-color: #6CCBFF; }
+#edPanel header button { width: 32px; height: 32px; padding: 0; border-radius: 50%; }
+#edPanel section { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); }
+#edSelBox.none .ed-row, #edSelBox.none .ed-grid, #edSelBox.none .ed-scope { opacity: .4; pointer-events: none; }
+.ed-name { font: 600 13px ui-monospace, monospace; color: #FFD54A; word-break: break-all; margin-bottom: 6px; }
+.ed-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+.ed-row b { flex: 1; }
+.ed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; margin: 8px 0; }
+.ed-grid label, .ed-scope { display: flex; flex-direction: column; font-size: 12px; color: rgba(255,255,255,.7); }
+#edPanel input[type=number], #edPanel select { width: 100%; box-sizing: border-box; margin-top: 2px; padding: 4px 6px; border: 1px solid rgba(255,255,255,.3); border-radius: 8px; background: rgba(0,0,0,.35); color: #fff; font: 600 14px ui-monospace, monospace; }
+.ed-main { flex: 1; background: linear-gradient(#8fdcff, #3fa9e8) !important; color: #0b2a44 !important; border: 0 !important; padding: 7px 10px !important; }
+.ed-check { display: flex; align-items: center; gap: 6px; flex: 1; font-size: 13px; }
+#edList { list-style: none; margin: 4px 0; padding: 0; max-height: 180px; overflow-y: auto; }
+#edList li { display: flex; align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.07); opacity: .55; }
+#edList li.live { opacity: 1; }
+#edList li span { flex: 1; min-width: 0; font: 12px ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#edList li small { display: block; color: rgba(255,255,255,.55); }
+#edList li button { padding: 0 7px; }
+.ed-tip { margin: 12px 0 0; color: rgba(255,255,255,.6); font-size: 12px; line-height: 1.45; }
+
+/* ===================================================================== */
+/* Chamber 1 "cavern" theme (LEVELS[0].theme). Art from assets/ui_*.webp  */
+/* replaces the CSS drawing via the has-<name> classes on #stage.         */
+/* ===================================================================== */
+#dirPick .ico { display: none; width: 46px; height: 46px; }
+#dirPick .ico.flip { transform: scaleX(-1); }
+
+/* top bar: only the key tray (top right) and the QA button */
+.theme-cavern .hud-right, .theme-cavern #levelName, .theme-cavern #ruleChip { visibility: hidden; }
+.theme-cavern #slots { position: absolute; right: 130px; top: 2px; background: linear-gradient(#5a3a1c, #3a2410); border: 3px solid #e2a84b; box-shadow: inset 0 2px 0 rgba(255,255,255,.2), 0 4px 10px rgba(0,0,0,.45); }
+
+/* wizard line: long banner across the top */
+.theme-cavern #bubble.left { left: 22px; top: 18px; width: 890px; min-height: 64px; padding: 6px 18px 6px 96px; border-radius: 40px; border: 4px solid #f0a13a; background: #fdf1dc; box-shadow: 0 6px 16px rgba(0,0,0,.45); }
+.theme-cavern #bubble.left .av { position: absolute; left: -6px; top: 50%; width: 92px; height: 92px; margin-top: -46px; border: 5px solid #f0a13a; background: #6c4bb8; }
+.theme-cavern #bubble.left .who { display: none; }
+.theme-cavern #bubble.left .txt { font: 24px/1.25 'Lilita One', sans-serif; color: #1d2650; letter-spacing: .01em; }
+.theme-cavern #bubble.left .replay { width: 40px; height: 40px; }
+.theme-cavern #bubble.left .next { right: 22px; bottom: -34px; }
+
+/* equation: dark-blue stone sign */
+.theme-cavern #tablet { top: 128px; min-width: 400px; padding: 16px 48px 20px; border-radius: 22px; border: 7px solid #6f7480;
+  background: radial-gradient(ellipse at 50% 40%, #24477a, #142b52 70%, #0e1f3d);
+  box-shadow: inset 0 0 0 3px #3b404c, inset 0 4px 14px rgba(120,180,255,.25), 0 8px 0 #2a2d35, 0 16px 30px rgba(0,0,0,.55);
+  font-size: 60px; text-shadow: 0 3px 0 rgba(0,0,0,.55); }
+.theme-cavern #tablet::before, .theme-cavern #tablet::after { top: 50%; margin-top: -8px; width: 16px; height: 16px; background: radial-gradient(circle at 35% 35%, #d9c08a, #8a6a34); }
+.theme-cavern #tablet .op, .theme-cavern #tablet .tok:not(.pos):not(.neg) { color: #fff; }
+.theme-cavern.has-ui_equation_sign #tablet { border: 0; border-radius: 0; box-shadow: none; padding: 34px 90px 40px; background: var(--a-ui_equation_sign) center / 100% 100% no-repeat; }
+.theme-cavern.has-ui_equation_sign #tablet::before, .theme-cavern.has-ui_equation_sign #tablet::after { display: none; }
+
+/* number line: floating rock islands with a cream plaque */
+.theme-cavern .stone { width: 120px; height: 104px; margin-left: -60px; border: 0; border-radius: 0; background: none; box-shadow: none; align-items: flex-start; transition: filter .25s; }
+.theme-cavern .stone::before { content: ''; position: absolute; inset: 0; z-index: -1;
+  clip-path: polygon(3% 12%, 12% 0, 88% 0, 97% 12%, 100% 58%, 72% 78%, 50% 100%, 28% 78%, 0 58%);
+  background: linear-gradient(#5f6a7d, #475165 55%, #2c6fb0 70%, #63c3ff 86%, #1a3f78); }
+.theme-cavern .stone .lbl { position: relative; margin-top: 9px; width: 96px; height: 54px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  background: linear-gradient(#fbeedd, #efd9b8); border: 3px solid #b88f5c; border-radius: 12px; box-shadow: inset 0 2px 0 rgba(255,255,255,.8), 0 2px 0 rgba(0,0,0,.25);
+  font-size: 34px; color: #3b2412 !important; transition: background .25s, border-color .25s; }
+.theme-cavern.has-ui_platform .stone::before { clip-path: none; background: var(--a-ui_platform) center / 100% 100% no-repeat; }
+.theme-cavern.has-ui_platform .stone .lbl { background: none; border-color: transparent; box-shadow: none; }
+.theme-cavern .stone.here { filter: drop-shadow(0 0 10px rgba(255,200,60,.95)); }
+.theme-cavern .stone.here .lbl, .theme-cavern .stone.land .lbl { background: linear-gradient(#fff6c8, #ffd760); border-color: #d48a10; }
+.theme-cavern .stone.trail { filter: drop-shadow(0 0 6px rgba(255,213,74,.8)); }
+.theme-cavern .stone.trail .lbl { border-color: #e8a41c; }
+.theme-cavern .stone.miss .lbl { background: linear-gradient(#ffd9d2, #f0a597); border-color: #9a3a2c; }
+.theme-cavern .stone.pulse { animation: stonePulseC 1s ease-in-out infinite; }
+@keyframes stonePulseC { 50% { filter: drop-shadow(0 0 14px #fff) drop-shadow(0 0 6px #fff); } }
+.theme-cavern .stone.start::after { top: 100px; }
+.theme-cavern .counter { top: -232px; }
+.theme-cavern .keyprize { top: -190px; }
+
+/* controls: two round orange arrows + green CHECK on a stone bar */
+.theme-cavern #dirPick { bottom: 40px; gap: 18px; align-items: center; padding: 12px 22px; border-radius: 30px; border: 4px solid #3d4250;
+  background: linear-gradient(#7a8090, #555b69 55%, #3f4452); box-shadow: inset 0 3px 0 rgba(255,255,255,.25), 0 10px 26px rgba(0,0,0,.55); }
+.theme-cavern #dirPick .left, .theme-cavern #dirPick .right { width: 104px; height: 104px; border-radius: 50%; color: #fff;
+  background: radial-gradient(circle at 40% 32%, #ffc06a, #ff8a1e 55%, #d4600a); border: 5px solid #b07a3a;
+  box-shadow: inset 0 4px 0 rgba(255,255,255,.4), 0 6px 0 #7a3c08, 0 10px 18px rgba(0,0,0,.45); text-shadow: none; }
+.theme-cavern #dirPick .left .t, .theme-cavern #dirPick .right .t, .theme-cavern #dirPick .arr { display: none; }
+.theme-cavern #dirPick .ico { display: block; margin: 0 auto; filter: drop-shadow(0 2px 0 rgba(0,0,0,.25)); }
+.theme-cavern #dirPick .jump { width: 210px; height: 86px; border-radius: 18px; font-size: 42px; color: #fff; letter-spacing: .03em;
+  background: linear-gradient(#7cf06a, #26c33a 55%, #129a28); border: 5px solid #0d6b1c; text-shadow: 0 3px 0 #0b5a18;
+  box-shadow: inset 0 4px 0 rgba(255,255,255,.45), 0 7px 0 #0b5a18, 0 12px 20px rgba(0,0,0,.45); }
+.theme-cavern #dirPick .left:active, .theme-cavern #dirPick .left.press, .theme-cavern #dirPick .right:active, .theme-cavern #dirPick .right.press { transform: translateY(5px); box-shadow: inset 0 4px 0 rgba(255,255,255,.4), 0 1px 0 #7a3c08; }
+.theme-cavern #dirPick .jump:active, .theme-cavern #dirPick .jump.press { transform: translateY(6px); box-shadow: inset 0 4px 0 rgba(255,255,255,.45), 0 1px 0 #0b5a18; }
+.theme-cavern #dirPick.moved .jump { animation: checkGlow 1.3s ease-in-out infinite; }
+@keyframes checkGlow { 50% { box-shadow: inset 0 4px 0 rgba(255,255,255,.45), 0 7px 0 #0b5a18, 0 0 26px 6px rgba(110,255,120,.7); } }
+.theme-cavern.has-ui_control_base #dirPick { border: 0; box-shadow: none; padding: 22px 46px; background: var(--a-ui_control_base) center / 100% 100% no-repeat; }
+.theme-cavern.has-ui_btn_arrow #dirPick .left, .theme-cavern.has-ui_btn_arrow #dirPick .right { border: 0; box-shadow: none; background: var(--a-ui_btn_arrow) center / contain no-repeat; }
+.theme-cavern.has-ui_btn_arrow #dirPick .ico { display: none; }
+.theme-cavern.has-ui_btn_arrow #dirPick .right { transform: scaleX(-1); }
+.theme-cavern.has-ui_btn_check #dirPick .jump { border: 0; box-shadow: none; background: var(--a-ui_btn_check) center / 100% 100% no-repeat; }
+.theme-cavern #dirPick .left { order: 1; } .theme-cavern #dirPick .right { order: 2; } .theme-cavern #dirPick .jump { order: 3; margin-left: 10px; }
+
+/* full control-bar art (assets/ui_controls.webp, 1902×427): shown at 560×126, with a tap area over each
+   button that carries its own slice of the art so it can darken when pressed and glow when ready */
+.theme-cavern.has-ui_controls #dirPick { display: block; width: 560px; height: 126px; padding: 0; border: 0; border-radius: 0; box-shadow: none; bottom: 30px;
+  background: var(--a-ui_controls) 0 0 / 560px 126px no-repeat; }
+.theme-cavern.has-ui_controls #dirPick .mv { position: absolute; margin: 0; padding: 0; border: 0; box-shadow: none; text-shadow: none; color: transparent; font-size: 0;
+  background: var(--a-ui_controls) no-repeat; background-size: 560px 126px; animation: none; transition: filter .1s, transform .1s; }
+.theme-cavern.has-ui_controls #dirPick .mv > * { display: none; }
+.theme-cavern.has-ui_controls #dirPick .left { left: 31px; top: 1px; width: 114px; height: 119px; border-radius: 50%; background-position: -31px -1px; }
+.theme-cavern.has-ui_controls #dirPick .right { left: 173px; top: 1px; width: 116px; height: 119px; border-radius: 50%; background-position: -173px -1px; }
+.theme-cavern.has-ui_controls #dirPick .jump { left: 311px; top: 20px; width: 224px; height: 94px; border-radius: 18px; background-position: -311px -20px; }
+.theme-cavern.has-ui_controls #dirPick .mv:hover { filter: brightness(1.08); }
+.theme-cavern.has-ui_controls #dirPick .mv:active, .theme-cavern.has-ui_controls #dirPick .mv.press { filter: brightness(.82); transform: scale(.96); box-shadow: none; }
+.theme-cavern.has-ui_controls #dirPick.moved .jump { animation: jumpArtGlow 1.3s ease-in-out infinite; }
+@keyframes jumpArtGlow { 50% { filter: brightness(1.12) drop-shadow(0 0 12px rgba(120,255,120,.9)); } }
+
+/* platform art (assets/ui_platform.webp, 1107×1021): plaque spans 14–87% across, 13.5–59% down */
+.theme-cavern.has-ui_platform .stone { width: 120px; height: 111px; margin-left: -60px; }
+.theme-cavern.has-ui_platform .stone .lbl { position: absolute; left: 17px; top: 15px; width: 87px; height: 51px; margin: 0; border: 0; border-radius: 6px; font-size: 32px; }
+.theme-cavern.has-ui_platform .stone.here .lbl, .theme-cavern.has-ui_platform .stone.land .lbl { background: rgba(255,205,70,.6); box-shadow: inset 0 0 0 3px #f2a922; }
+.theme-cavern.has-ui_platform .stone.trail .lbl { box-shadow: inset 0 0 0 3px rgba(242,169,34,.9); }
+.theme-cavern.has-ui_platform .stone.miss .lbl { background: rgba(240,110,90,.5); box-shadow: inset 0 0 0 3px #c0392b; }
+.theme-cavern.has-ui_platform .stone.start::after { top: 104px; }
+
+/* equation sign art (assets/ui_equation_sign.webp, 2170×623): fixed size so the frame isn't stretched */
+.theme-cavern.has-ui_equation_sign #tablet { top: 118px; width: 440px; min-width: 0; height: 126px; padding: 0 34px; box-sizing: border-box; line-height: 124px; font-size: 56px; }
+.theme-cavern.has-ui_equation_sign #tablet.rule { width: auto; min-width: 440px; padding: 0 64px; font-size: 30px; }
+/* the sign sits low in this theme: step counter beside the explorer's head, key just above it */
+.theme-cavern .counter { top: -150px; margin-left: 42px; width: 54px; height: 54px; font-size: 30px; }
+.theme-cavern .keyprize { top: -168px; width: 76px; height: 76px; margin-left: -38px; }
+
+/* Chamber 1 number line (layout editor export, 13 Oct): control bar, sign and key tray resized */
+#stage[data-bg="bg_level1_amber_tunnel"].theme-cavern.has-ui_controls #dirPick { scale: .824; transform-origin: 50% 100%; bottom: 43.8px; margin-left: -52.1px; } /* -2.8 - 280×(1-.824) */
+#stage[data-bg="bg_level1_amber_tunnel"].theme-cavern #tablet { scale: .878 .884; transform-origin: 50% 0; top: 109.4px; margin-left: -18.5px; } /* 8.3 - 220×(1-.878) */
+#stage[data-bg="bg_level1_amber_tunnel"].theme-cavern #slots { scale: .712; transform-origin: 100% 0; right: 135px; top: 16.5px; }
+
+/* layout editor: multi-select outlines, box-select rectangle, font size row */
+#edItems > div { position: absolute; display: none; box-sizing: border-box; pointer-events: none; outline: 1.5px dashed rgba(255,213,74,.95); }
+#edMarq { position: absolute; display: none; pointer-events: none; border: 1.5px dashed #6CCBFF; background: rgba(108,203,255,.12); }
+.ed-font { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; font-size: 12px; color: rgba(255,255,255,.7); }
+.ed-font > span { flex: 1; }
+#edPanel .ed-font input[type=number] { width: 64px; margin: 0; text-align: center; }
+.ed-font small { margin-left: -2px; }
+#edPanel .ed-font button { min-width: 36px; padding: 4px 6px; }
+#edPanel button:disabled, #edPanel input:disabled { opacity: .45; cursor: default; }

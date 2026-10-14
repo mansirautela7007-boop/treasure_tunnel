@@ -5,7 +5,8 @@
 const $ = s => document.querySelector(s);
 const ASSET = n => (window.ASSETS && window.ASSETS[n]) || `assets/${n}.webp`;
 const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-const STEP = 112, MIN = -25, MAX = 25;
+let STEP = 112; // stone spacing, set per level in NL.build
+const MIN = -25, MAX = 25;
 const STAGE_W = 1280, STAGE_H = 720;
 const stage = $('#stage');
 
@@ -90,7 +91,7 @@ function stagePos(el) {
 /* ---------- backgrounds ---------- */
 let bgFlip = false, bgNow = '';
 function setBg(name) {
-  if (bgNow === name) return; bgNow = name;
+  if (bgNow === name) return; bgNow = name; stage.dataset.bg = name;
   const a = $(bgFlip ? '#bgA' : '#bgB'), b = $(bgFlip ? '#bgB' : '#bgA');
   a.style.backgroundImage = `url(${ASSET(name)})`; a.classList.add('on'); b.classList.remove('on'); bgFlip = !bgFlip;
 }
@@ -173,21 +174,21 @@ function toast(text, small = false) {
 /* ---------- speech bubble ---------- */
 const WHO = { wizard: 'Wizard', explorer: 'Explorer', narrator: 'Narrator' };
 let lastLine = { who: 'narrator', text: '' };
-function bubble(who, text, mode = 'bottom', speak = true) {
+function bubble(who, text, mode = 'bottom', speak = true, clip = null) {
   const b = $('#bubble');
   b.className = `on ${mode} ${who}`;
   b.querySelector('.av').src = who === 'wizard' ? ASSET('wizard_avatar') : who === 'explorer' ? ASSET('explorer_avatar') : NARRATOR_AV;
   b.querySelector('.who').textContent = WHO[who];
   b.querySelector('.txt').innerHTML = text;
   retrigger(b, 'pop');
-  lastLine = { who, text };
-  return speak ? Voice.say(text, who) : Promise.resolve();
+  lastLine = { who, text, clip };
+  return speak ? Voice.say(text, who, clip) : Promise.resolve();
 }
 async function say(who, text, mode = 'bottom') { const r = RUN; await bubble(who, text, mode); guard(r); }
 function bubbleText(text) { $('#bubble .txt').innerHTML = text; }
 function hideBubble() { $('#bubble').className = ''; }
 $('#btnReplay').innerHTML = ICONS.replay;
-$('#btnReplay').addEventListener('click', e => { e.stopPropagation(); Sound.fx.tap(); Voice.say(lastLine.text, lastLine.who); });
+$('#btnReplay').addEventListener('click', e => { e.stopPropagation(); Sound.fx.tap(); Voice.say(lastLine.text, lastLine.who, lastLine.clip); });
 
 /* ---------- waiting for the player ---------- */
 let pending = { next: null, cont: null, dial: null, dir: null, tapTarget: null };
@@ -278,7 +279,7 @@ function actor(id, o) {
   let a = actors[id]; const isNew = !a;
   const h = o.h || (a && a.h) || 380, w = h * .75;
   if (isNew) {
-    const el = document.createElement('div'); el.className = 'actor';
+    const el = document.createElement('div'); el.className = 'actor'; el.dataset.actor = id;
     el.innerHTML = `<div class="shadow"></div><div class="bob"><img alt=""></div>`;
     $('#world').appendChild(el); a = actors[id] = { el, h, x: 0, y: 0 };
     el.style.transition = 'none';
@@ -311,6 +312,7 @@ const NL = {
   x: v => (v - MIN) * STEP + STEP / 2,
   build(lvl) {
     const nl = $('#nl'); nl.innerHTML = '';
+    STEP = lvl.step || 112; this.h = lvl.explorerH || 250;
     this.top = Math.round(lvl.ledge * STAGE_H);
     $('#nlWrap').style.top = `${this.top}px`;
     nl.style.width = `${(MAX - MIN + 1) * STEP}px`;
@@ -318,7 +320,7 @@ const NL = {
       const s = document.createElement('div');
       s.className = `stone${v === 0 ? ' zero' : ''}${v % 5 === 0 ? ' mark show' : ''}`;
       s.dataset.v = v; s.style.left = `${this.x(v)}px`;
-      s.innerHTML = `<span class="dot"></span><span class="lbl ${cls(v)}">${fmt(v)}</span>`;
+      s.innerHTML = `<span class="lbl">${v < 0 ? `−${-v}` : v}</span>`;
       nl.appendChild(s);
     }
     const ex = document.createElement('div'); ex.className = 'actor idle'; ex.id = 'nlExp';
@@ -336,7 +338,9 @@ const NL = {
   hop() { pulseClass(this.exp, 'hop', 450); },
   setStepMs(ms) { $('#nl').style.setProperty('--stepms', `${ms}ms`); this.exp.style.transition = `transform ${ms}ms ease-in-out`; },
   place(v, instant = false) {
+    this.stone(this.pos)?.classList.remove('here');
     this.pos = v;
+    this.stone(v)?.classList.add('here');
     const w = this.h * .75;
     if (instant) { this.exp.style.transition = 'none'; $('#nl').style.transition = 'none'; }
     this.exp.style.transform = `translate(${this.x(v) - w / 2}px, ${-this.h * .975 + 10}px)`;
@@ -442,13 +446,62 @@ const Dial = (() => {
   };
 })();
 
-/* ---------- direction choice ---------- */
-let dirResolver = null;
-function askDir() {
-  const r = RUN; $('#dirPick').classList.add('on');
-  return new Promise(res => { dirResolver = res; }).then(d => { $('#dirPick').classList.remove('on'); guard(r); return d; });
-}
-$('#dirPick').addEventListener('click', e => { const b = e.target.closest('button'); if (b && dirResolver) { Sound.fx.tap(); const f = dirResolver; dirResolver = null; f(b.dataset.dir); } });
+/* ---------- move pad: Left / Right walk the explorer one stone, JUMP answers ---------- */
+const Mover = (() => {
+  const pad = $('#dirPick');
+  let resolver = null, start = 0, queue = 0, busy = false, jumpWanted = false, idleT = null, idleFn = null, foot = 0;
+  function resetIdle() {
+    clearTimeout(idleT);
+    if (resolver && idleFn) idleT = setTimeout(() => { if (resolver) idleFn(); resetIdle(); }, 16000);
+  }
+  // trail and step counter from the start stone to where the explorer stands
+  function showSteps() {
+    document.querySelectorAll('#nl .stone.trail').forEach(s => s.classList.remove('trail'));
+    const n = NL.pos - start, dir = Math.sign(n), c = $('#counter');
+    for (let k = 1; k <= Math.abs(n); k++) NL.stone(start + dir * k)?.classList.add('trail');
+    if (n) { c.style.left = `${NL.x(NL.pos)}px`; c.innerHTML = `<small>${Math.abs(n) === 1 ? 'Step' : 'Steps'}</small>${Math.abs(n)}`; c.classList.add('on'); }
+    else c.classList.remove('on');
+    pad.classList.toggle('moved', n !== 0);
+  }
+  async function pump() {
+    if (busy) return; busy = true;
+    const ms = RM ? 120 : 220;
+    try {
+      while (queue && resolver) {
+        const d = Math.sign(queue); queue -= d;
+        if (NL.pos + d < MIN || NL.pos + d > MAX) { queue = 0; break; }
+        NL.hideArrow(); NL.face(d); NL.setStepMs(ms);
+        NL.pose(foot++ % 2 ? 'explorer_walk_2' : 'explorer_walk_1');
+        NL.place(NL.pos + d); Sound.fx.step(); Sound.fx.count(Math.abs(NL.pos - start) || 1);
+        showSteps();
+        await wait(ms);
+      }
+      NL.pose('explorer_idle');
+    } catch (e) { if (e !== CANCEL) console.error(e); }
+    busy = false;
+    if (jumpWanted && resolver) { jumpWanted = false; finish(); }
+  }
+  function finish() { const f = resolver; resolver = null; clearTimeout(idleT); pad.classList.remove('on', 'moved'); f(NL.pos); }
+  function press(dir) {
+    if (!resolver) return;
+    Sound.fx.tap(); resetIdle();
+    if (dir === 'jump') { if (busy || queue) jumpWanted = true; else finish(); return; }
+    queue += dir === 'left' ? -1 : 1; pump();
+  }
+  pad.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { pulseClass(b, 'press', 140); press(b.dataset.dir); } });
+  return {
+    ask(from, { idle } = {}) {
+      const r = RUN; start = from; queue = 0; jumpWanted = false; idleFn = idle || null;
+      showSteps(); pad.classList.add('on');
+      return new Promise(res => { resolver = res; resetIdle(); }).then(v => { guard(r); return v; });
+    },
+    hide() { pad.classList.remove('on', 'moved'); resolver = null; queue = 0; jumpWanted = false; clearTimeout(idleT); },
+    press,
+    pulse() { retrigger(pad, 'pulse'); },
+    solve(v) { if (resolver) { queue = v - NL.pos; jumpWanted = true; if (!busy && !queue) { jumpWanted = false; finish(); } else pump(); } },
+    get active() { return !!resolver; },
+  };
+})();
 
 /* ---------- keyboard ---------- */
 addEventListener('keydown', e => {
@@ -468,7 +521,10 @@ addEventListener('keydown', e => {
     if (k) { e.preventDefault(); Dial.key(k); }
     return;
   }
-  if (dirResolver && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); const f = dirResolver; dirResolver = null; Sound.fx.tap(); f(e.key === 'ArrowLeft' ? 'left' : 'right'); return; }
+  if (Mover.active) {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); Mover.press(e.key === 'ArrowLeft' ? 'left' : 'right'); return; }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); Mover.press('jump'); return; }
+  }
   if (e.key === 'Enter' || e.key === ' ') {
     if (pending.next) { e.preventDefault(); fireNext(); }
     else if (pending.cont) { e.preventDefault(); $('#btnContinue').click(); }
@@ -533,7 +589,7 @@ const MapView = {
 function resetUI() {
   Voice.stop();
   pending = { next: null, cont: null, dial: null, dir: null, tapTarget: null };
-  dirResolver = null;
+  Mover.hide();
   hideBubble(); Tablet.hide(); Dial.hide(); Dial.clear();
   ['#dirPick', '#btnContinue', '#demo', '#miniLine', '#hintArrow', '#ruleChip', '#flare'].forEach(s => $(s).classList.remove('on'));
   $('#toast').classList.remove('on'); $('#tapHint').style.opacity = 0;
@@ -541,7 +597,7 @@ function resetUI() {
   MapView.hide(); HUD.hide();
   document.querySelectorAll('.fly, .puff, .poofcloud').forEach(e => e.remove());
   ['#badgeModal', '#final', '#title'].forEach(s => $(s).classList.remove('on'));
-  S.streak = 0;
+  S.streak = 0; stage.classList.remove('theme-cavern');
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
 
@@ -557,7 +613,7 @@ function mapScrap(x, y, w, rot, piece) {
   return p;
 }
 function storySeals() {
-  [[600, 150], [760, 118], [920, 140], [1080, 112]].forEach(([x, y], i) => {
+  [[560, 198], [703, 112], [873, 158], [1040, 126]].forEach(([x, y], i) => {
     const s = prop('sealf', { left: `${x - 35}px`, top: `${y - 35}px`, animationDelay: `${i * .18}s, ${.6 + i * .18}s` }, '?');
   });
 }
@@ -565,7 +621,7 @@ function storySeals() {
 const SCENES = {
   async hook() {
     prop('lightbeam on', {});
-    actor('exp', { img: 'explorer_idle', x: 330, y: 600, h: 380, cls: 'idle', enter: true });
+    actor('exp', { img: 'explorer_idle', x: 303, y: 597, h: 280, cls: 'idle', enter: true });
   },
   async lostMap() {
     actor('exp', { img: 'explorer_idle', x: 230, y: 600, h: 340, cls: 'idle' });
@@ -577,19 +633,19 @@ const SCENES = {
     mapScrap(860, 440, 100, 14, 1); mapScrap(1080, 470, 110, -18, 2);
   },
   async wizardAppears() {
-    actor('exp', { img: 'explorer_worried', x: 380, y: 640, h: 450, cls: 'idle' });
-    poofAt(950, 420); await wait(250);
-    actor('wiz', { img: 'wizard_laugh', x: 950, y: 640, h: 470, cls: 'idle', enter: true });
+    actor('exp', { img: 'explorer_worried', x: 319, y: 630, h: 336, cls: 'idle' });
+    poofAt(921, 400); await wait(250);
+    actor('wiz', { img: 'wizard_laugh', x: 921, y: 641, h: 507, cls: 'idle', enter: true });
     await wait(500); storySeals(); Sound.fx.sparkle();
   },
   async ready() {
-    actor('exp', { img: 'explorer_thumbsup', x: 380, y: 640, h: 450, cls: 'idle glowring' });
-    actor('wiz', { img: 'wizard_point', x: 950, y: 640, h: 470, cls: 'idle' }); actorAnim('exp', 'hop');
+    actor('exp', { img: 'explorer_thumbsup', x: 319, y: 630, h: 336, cls: 'idle glowring' });
+    actor('wiz', { img: 'wizard_point', x: 921, y: 641, h: 507, cls: 'idle' }); actorAnim('exp', 'hop');
     storySeals();
   },
   async readyWizard() {
-    actor('exp', { img: 'explorer_point', x: 380, y: 640, h: 450, cls: 'idle' });
-    actor('wiz', { img: 'wizard_explain', x: 950, y: 640, h: 470, cls: 'idle' });
+    actor('exp', { img: 'explorer_point', x: 319, y: 630, h: 336, cls: 'idle' });
+    actor('wiz', { img: 'wizard_explain', x: 921, y: 641, h: 507, cls: 'idle' });
     storySeals();
   },
   /* ending */
@@ -637,7 +693,7 @@ async function playScenes(list) {
     if (sc.bg) setBg(sc.bg);
     if (sc.scene !== 'open') clearProps();
     await SCENES[sc.scene]();
-    bubble(sc.who, sc.text, 'bottom');
+    bubble(sc.who, sc.text, 'bottom', true, sc.clip);
     await nextTap();
   }
 }
@@ -733,18 +789,17 @@ async function keyHunt(L, from = 0) {
     const it = lvl.keys[i], ans = it.start + it.delta;
     let tries = 0;
     QA.at(`${L}:keys:${i}`, it.delta > 0 ? 'right' : 'left', ans);
-    NL.resetMarks(); Dial.clear(); Tablet.eq(it.eq);
+    NL.resetMarks(); Tablet.eq(it.eq);
     if (NL.pos !== it.start) await NL.teleport(it.start); else NL.face(1);
     NL.markStart(it.start);
     await say('wizard', it.vo, 'left');
-    if (it.askDir) await chooseDirection(it);
-    await NL.walk(it.start, it.delta);
-    const prompt = 'Where did the explorer stop? Tap the number, then press GO!';
-    bubble('wizard', prompt, 'left', i === 0);
+    const n = Math.abs(it.delta), submit = lvl.submit || 'JUMP';
+    bubble('wizard', lvl.theme === 'cavern'
+      ? `Start at ${fmt(it.start)} and move ${n} step${n === 1 ? '' : 's'} ${it.delta > 0 ? 'right' : 'left'}. Then press ${submit}.`
+      : `Move the explorer with Left and Right, then press ${submit} to grab the key!`, 'left', i === 0 || lvl.theme === 'cavern');
     while (true) {
-      const v = await Dial.ask({
-        idle: () => { bubble('wizard', it.idle, 'left'); Dial.pulse(); NL.hop(); },
-        touched: () => bubbleText(prompt),
+      const v = await Mover.ask(it.start, {
+        idle: () => { bubble('wizard', it.idle, 'left'); Mover.pulse(); NL.hop(); },
       });
       if (v === ans) break;
       tries++;
@@ -754,62 +809,33 @@ async function keyHunt(L, from = 0) {
   }
 }
 
-async function chooseDirection(it) {
-  const right = it.delta > 0 ? 'right' : 'left';
-  while (true) {
-    const d = await askDir();
-    if (d === right) {
-      Sound.fx.pop(); NL.face(d === 'right' ? 1 : -1); NL.hop();
-      bubble('wizard', `Yes! Move ${d}.`, 'left', false); await wait(700); return;
-    }
-    Sound.fx.wrong(); NL.face(d === 'right' ? 1 : -1); NL.hop(); retrigger($('#ruleChip').lastElementChild, 'flash');
-    await say('wizard', it.wrong[1], 'left');
-    NL.face(1);
-  }
-}
-
 async function wrongKey(it, v, tries, ans) {
   const rung = Math.min(tries, 3);
-  S.streak = 0; Dial.shake(); Sound.fx.wrong(); Dial.hide();
-  const inRange = v >= MIN && v <= MAX;
-  if (inRange && v !== NL.pos) {
-    await NL.walk(NL.pos, v - NL.pos, { count: false, trail: false, stepMs: RM ? 120 : 150 });
-  }
-  if (inRange) {
-    NL.stone(v)?.classList.add('miss', 'show');
-    NL.pose('explorer_confused'); NL.jump();
-    await wait(450); const p = stagePos(NL.exp); puffs(p.x, p.y + 110); Sound.fx.thud();
-  } else {
-    retrigger($('#bubble'), 'flash');
-  }
+  S.streak = 0; Sound.fx.wrong(); $('#counter').classList.remove('on');
+  NL.stone(v)?.classList.add('miss', 'show');
+  NL.pose('explorer_confused'); NL.jump();
+  await wait(450); const p = stagePos(NL.exp); puffs(p.x, p.y + 110); Sound.fx.thud();
   await say('wizard', it.wrong[rung - 1], 'left');
-  if (rung === 2) {
-    NL.resetMarks(); NL.markStart(it.start);
-    await NL.teleport(it.start);
-    await NL.walk(it.start, it.delta);
-  } else {
-    if (NL.pos !== ans) await NL.walk(NL.pos, ans - NL.pos, { count: false, trail: false, stepMs: RM ? 120 : 150 });
-    NL.pose('explorer_idle');
-    const vs = NL.stone(v);
-    if (vs && v % 5 !== 0 && !vs.classList.contains('start')) vs.classList.remove('show');
-    NL.stone(v)?.classList.remove('miss');
-    if (rung === 3) {
-      const dir = Math.sign(it.delta), c = $('#counter');
-      for (let k = 1; k <= Math.abs(it.delta); k++) {
-        const s = NL.stone(it.start + dir * k); s?.classList.add('trail');
-        c.style.left = `${NL.x(it.start + dir * k)}px`; c.innerHTML = `<small>Step</small>${k}`; retrigger(c, 'on'); Sound.fx.count(k);
-        await wait(RM ? 200 : 380);
-      }
-      c.classList.remove('on');
-      NL.stone(ans)?.classList.add('pulse');
+  // back to the start stone to try again
+  NL.resetMarks(); NL.markStart(it.start);
+  await NL.teleport(it.start);
+  const right = it.delta > 0;
+  if (rung === 2) NL.arrow(it.start, 2, right ? 'Move right' : 'Move left', !right);
+  if (rung === 3) {
+    const dir = Math.sign(it.delta), c = $('#counter');
+    for (let k = 1; k <= Math.abs(it.delta); k++) {
+      const s = NL.stone(it.start + dir * k); s?.classList.add('trail');
+      c.style.left = `${NL.x(it.start + dir * k)}px`; c.innerHTML = `<small>Step</small>${k}`; retrigger(c, 'on'); Sound.fx.count(k);
+      await wait(RM ? 200 : 380);
     }
+    c.classList.remove('on');
+    NL.stone(ans)?.classList.add('pulse');
   }
   NL.pose('explorer_idle'); NL.face(1);
-  Dial.clear();
 }
 
 async function keySuccess(L, i, it, ans, firstTry) {
-  Dial.good(); Dial.hide();
+  Mover.hide(); NL.hideArrow(); $('#counter').classList.remove('on');
   Tablet.solve(ans);
   const s = NL.stone(ans); s.classList.remove('pulse'); s.classList.add('land', 'show');
   NL.pose('explorer_jump_key'); NL.jump(); Sound.fx.key();
@@ -1003,6 +1029,8 @@ async function runLevel(L, step = 'teach', i = 0) {
   S.level = L; S.levelGems[L] = 0; S.piecesOpen = from >= 3 ? L + 1 : L;
   S.pathsOpen = [0, 1, 2].map(k => (k < L ? 4 : k > L ? 0 : from >= 4 ? 4 : from === 3 ? i : 0));
   resetUI();
+  stage.classList.toggle('theme-cavern', lvl.theme === 'cavern');
+  $('#dirPick .jump .t').textContent = lvl.submit || 'JUMP!';
   setBg(lvl.bg); NL.build(lvl);
   HUD.level(`Chamber ${L + 1}: ${lvl.name}`);
   if (L > 0 && from === 0) { toast(lvl.name, true); Sound.fx.whoosh(); await wait(1200); }
@@ -1060,6 +1088,13 @@ $('#pause').addEventListener('click', e => {
 });
 $('#btnAgain').addEventListener('click', () => { Sound.fx.tap(); showTitle(); });
 
+/* ---------- dev buttons (QA, editor) sit at the top right, left of the menu ---------- */
+function devButton(btn) {
+  let d = $('#devBtns');
+  if (!d) { d = document.createElement('div'); d.id = 'devBtns'; stage.appendChild(d); }
+  d.prepend(btn); $('.hud-right').style.marginRight = `${d.children.length * 60}px`;
+}
+
 /* ---------- QA panel: jump to any step, auto-solve ---------- */
 const QA = (() => {
   let cur = '', dir = null, ans = null, open = false, box = null;
@@ -1088,7 +1123,7 @@ const QA = (() => {
         <p class="qa-tip"><kbd>Q</kbd> open or close · <kbd>N</kbd> auto-solve · <kbd>Esc</kbd> close</p>
       </aside>`;
     document.body.appendChild(box);
-    stage.appendChild($('#qaBtn')); stage.classList.add('has-qa');
+    devButton($('#qaBtn'));
     $('#qaBtn').addEventListener('click', () => api.toggle());
     $('#qaClose').addEventListener('click', () => api.close());
     $('#qaAuto').addEventListener('click', () => api.auto());
@@ -1107,6 +1142,8 @@ const QA = (() => {
   }
   const api = {
     get isOpen() { return open; },
+    get cur() { return cur; },
+    get label() { return label(cur); },
     at(id, d = null, a = null) { cur = id; dir = d; ans = a; paint(); },
     toggle() { open ? api.close() : api.open(); },
     open() { if (!box) return; open = true; box.classList.add('on'); Voice.stop(); },
@@ -1114,7 +1151,7 @@ const QA = (() => {
     // answer whatever the game is waiting for, or press its Next/Continue button
     auto() {
       Sound.init();
-      if (dirResolver && dir) { const f = dirResolver; dirResolver = null; f(dir); return; }
+      if (Mover.active && ans !== null) { Mover.solve(ans); return; }
       if (Dial.active && ans !== null) {
         Dial.clear(); if (ans < 0) Dial.key('-');
         String(Math.abs(ans)).split('').forEach(d => Dial.key(d)); Dial.key('go'); return;
@@ -1135,10 +1172,17 @@ function showTitle() {
   RUN++; resetUI(); setBg('bg_entrance'); QA.at('');
   $('#title').classList.add('on');
   $('#title .logo-key').innerHTML = KEY_SVG;
-  actor('exp', { img: 'explorer_idle', x: 190, y: 735, h: 400, cls: 'idle' });
-  actor('wiz', { img: 'wizard_laugh', x: 1100, y: 735, h: 400, cls: 'float' });
+  actor('exp', { img: 'explorer_idle', x: 282, y: 580, h: 258, cls: 'idle' });
+  actor('wiz', { img: 'wizard_laugh', x: 1026, y: 620, h: 457, cls: 'float' });
 }
 $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.init(); Sound.fx.fanfare(); $('#title').classList.remove('on'); goChapter('story'); });
+
+/* ---------- optional UI art: used when the file exists, drawn in CSS otherwise ---------- */
+['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls'].forEach(n => {
+  const img = new Image();
+  img.onload = () => { stage.style.setProperty(`--a-${n}`, `url("${img.src}")`); stage.classList.add(`has-${n}`); };
+  img.src = ASSET(n);
+});
 
 /* ---------- boot ---------- */
 ['explorer_idle', 'explorer_walk_1', 'explorer_walk_2', 'explorer_jump_key', 'explorer_confused', 'explorer_point', 'explorer_thumbsup', 'explorer_worried', 'explorer_run_back',
@@ -1146,5 +1190,5 @@ $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.in
  'bg_tunnel', 'bg_level1_amber_tunnel', 'bg_level2_shadow_chamber', 'bg_level3_crystal_cavern', 'bg_map_table', 'bg_final_path', 'bg_treasure_chamber']
   .forEach(n => { const i = new Image(); i.src = ASSET(n); });
 fit(); paintToggles(); setGems(); showTitle();
-window.__tt = { goChapter };
+window.__tt = { goChapter, devButton, ctx: () => ({ step: QA.cur, label: QA.label, bg: bgNow }) };
 })();

@@ -66,9 +66,10 @@
         <button class="k go" data-k="go" id="btnGo">GO!</button>
       </div>
 
-      <div id="dirPick">
-        <button data-dir="left" aria-label="Move left"><span class="arr">◀</span> Left</button>
-        <button data-dir="right" aria-label="Move right">Right <span class="arr">▶</span></button>
+      <div id="dirPick" aria-label="Move the explorer">
+        <button class="mv left" data-dir="left" aria-label="Move left"><span class="arr">◀</span><svg class="ico" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 7 L7 20 L20 33 M8 20 H34" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t"> Left</span></button>
+        <button class="mv jump" data-dir="jump" aria-label="Answer"><span class="t">JUMP!</span></button>
+        <button class="mv right" data-dir="right" aria-label="Move right"><span class="t">Right </span><svg class="ico flip" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 7 L7 20 L20 33 M8 20 H34" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arr">▶</span></button>
       </div>
 
       <button id="btnContinue" class="bigbtn">Continue</button>
@@ -131,5 +132,6 @@
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/game.js"></script>
+<script src="js/editor.js"></script>
 </body>
 </html>
