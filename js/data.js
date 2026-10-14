@@ -46,9 +46,10 @@ const OOPS_MAP = 'Oops! That didn’t reveal the path. Try again.';
 const LEVELS = [
   /* ---------------- LEVEL 1 ---------------- */
   {
-    name: 'Amber Tunnel', bg: 'bg_level1_amber_tunnel', ledge: 0.565,
+    name: 'Amber Tunnel', bg: 'bg_level1_amber_tunnel', ledge: 0.579,
     // cavern look: floating platforms, top banner, arrow buttons + CHECK (art in assets/ui_*.webp when present)
-    theme: 'cavern', step: 128, explorerH: 165, submit: 'JUMP',
+    theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP', directPrompt: true,
+    mapScroll: true, // map puzzles on a parchment scroll; the map shows between puzzles
     badge: { name: 'Path Finder', color: '#F29A2E', dark: '#9A5410', icon: 'both' },
     rule: [['+', 'Add', 'right'], ['−', 'Subtract', 'left']],
     teach: [
@@ -176,7 +177,9 @@ const LEVELS = [
 
   /* ---------------- LEVEL 3 ---------------- */
   {
-    name: 'Crystal Cavern', bg: 'bg_level3_crystal_cavern', ledge: 0.695,
+    name: 'Crystal Cavern', bg: 'bg_level3_crystal_cavern', ledge: 0.579,
+    // same look as Chamber 1; prompt stays general so it doesn't give away the direction
+    theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP',
     badge: { name: 'Flip Master', color: '#14B8A6', dark: '#0F5F57', icon: 'right' },
     rule: [['−(−)', 'Subtract a negative', 'right']],
     teach: [

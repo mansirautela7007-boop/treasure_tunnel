@@ -189,6 +189,7 @@ function bubbleText(text) { $('#bubble .txt').innerHTML = text; }
 function hideBubble() { $('#bubble').className = ''; }
 $('#btnReplay').innerHTML = ICONS.replay;
 $('#btnReplay').addEventListener('click', e => { e.stopPropagation(); Sound.fx.tap(); Voice.say(lastLine.text, lastLine.who, lastLine.clip); });
+$('#btnHelp').addEventListener('click', e => { e.stopPropagation(); Sound.fx.tap(); retrigger($('#bubble'), 'pop'); Voice.say(lastLine.text, lastLine.who, lastLine.clip); });
 
 /* ---------- waiting for the player ---------- */
 let pending = { next: null, cont: null, dial: null, dir: null, tapTarget: null };
@@ -250,9 +251,19 @@ const Tablet = {
       const v = parseInt(tok.replace(/[()]/g, '').replace('−', '-'), 10);
       return `<span class="tok ${cls(v)}" data-i="${i}">${tok}</span>`;
     }).join(' ');
+    this.fit();
   },
-  rule(html) { const t = $('#tablet'); t.className = 'on rule'; t.innerHTML = html; },
-  solve(v) { const t = $('#tablet'); const q = t.querySelector('.q'); if (q) { q.outerHTML = numHTML(v); } t.classList.add('solved'); },
+  rule(html) { const t = $('#tablet'); t.className = 'on rule'; t.innerHTML = html; this.fit(); },
+  solve(v) { const t = $('#tablet'); const q = t.querySelector('.q'); if (q) { q.outerHTML = numHTML(v); } t.classList.add('solved'); this.fit(); },
+  // a fixed-size sign: shrink the text only when it would spill past the frame
+  fit() {
+    const t = $('#tablet'), kids = [...t.children];
+    t.style.fontSize = '';
+    if (!kids.length) return;
+    const cs = getComputedStyle(t), room = t.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const need = Math.max(...kids.map(k => k.offsetLeft + k.offsetWidth)) - Math.min(...kids.map(k => k.offsetLeft));
+    if (need > room) t.style.fontSize = `${(parseFloat(cs.fontSize) * room / need * .97).toFixed(1)}px`;
+  },
   async pulseTokens() {
     const toks = [...$('#tablet').querySelectorAll('.tok')];
     const first = toks[0], second = toks.slice(1, 3);
@@ -410,6 +421,8 @@ const Dial = (() => {
     if (v === null) disp.innerHTML = `<span class="ph">${sign < 0 ? '<span class="neg">−</span>' : sign > 0 ? '<span class="pos">+</span>' : ''}?</span>`;
     else disp.innerHTML = numHTML(v);
     $('#btnGo').classList.toggle('ready', v !== null);
+    const q = stage.classList.contains('map-scroll') && $('#tablet .q');
+    if (q) { q.textContent = v === null ? `${sign < 0 ? '−' : sign > 0 ? '+' : ''}?` : fmt(v); Tablet.fit(); }
   }
   function resetIdle() {
     clearTimeout(idleT);
@@ -438,7 +451,7 @@ const Dial = (() => {
       const r = RUN; this.show(); idleFn = idle; onTouch = touched || null;
       return new Promise(res => { resolver = res; resetIdle(); }).then(v => { guard(r); return v; });
     },
-    shake() { retrigger(disp, 'shake'); },
+    shake() { retrigger(disp, 'shake'); const q = $('#tablet .q'); if (q) retrigger(q, 'shake'); },
     good() { disp.classList.add('good'); },
     pulse() { retrigger(tray, 'pulse'); },
     key(k) { press(k); },
@@ -597,7 +610,7 @@ function resetUI() {
   MapView.hide(); HUD.hide();
   document.querySelectorAll('.fly, .puff, .poofcloud').forEach(e => e.remove());
   ['#badgeModal', '#final', '#title'].forEach(s => $(s).classList.remove('on'));
-  S.streak = 0; stage.classList.remove('theme-cavern');
+  S.streak = 0; stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll');
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
 
@@ -794,7 +807,7 @@ async function keyHunt(L, from = 0) {
     NL.markStart(it.start);
     await say('wizard', it.vo, 'left');
     const n = Math.abs(it.delta), submit = lvl.submit || 'JUMP';
-    bubble('wizard', lvl.theme === 'cavern'
+    bubble('wizard', lvl.directPrompt
       ? `Start at ${fmt(it.start)} and move ${n} step${n === 1 ? '' : 's'} ${it.delta > 0 ? 'right' : 'left'}. Then press ${submit}.`
       : `Move the explorer with Left and Right, then press ${submit} to grab the key!`, 'left', i === 0 || lvl.theme === 'cavern');
     while (true) {
@@ -924,6 +937,7 @@ function mapScene() {
 async function mysteries(L, from = 0) {
   const lvl = LEVELS[L];
   mapScene(); setRules(L);
+  stage.classList.toggle('map-ui', !!lvl.mapScroll);
   HUD.seals(lvl.mysteries.length);
   if (from === 0) for (const line of lvl.mapIntro) { bubble(line.who, line.text, 'side'); await nextTap(); }
   MapView.seals(L); await wait(1100);
@@ -932,6 +946,10 @@ async function mysteries(L, from = 0) {
     const m = lvl.mysteries[j], ans = m.start + m.delta;
     let tries = 0;
     QA.at(`${L}:map:${j}`, null, ans);
+    if (lvl.mapScroll) {
+      if (j > from) await wait(900); // let the newly lit path stay on screen a moment
+      stage.classList.add('map-scroll'); setBg(lvl.bg); Sound.fx.whoosh(); await wait(450);
+    }
     Dial.clear(); Tablet.eq(m.eq); $('#hintArrow').classList.remove('on'); $('#miniLine').classList.remove('on');
     const seal = MapView.seal(j); seal.classList.add('active');
     actor('exp', { img: 'explorer_idle' });
@@ -965,6 +983,7 @@ async function mysteries(L, from = 0) {
     }
     // solved
     Dial.good(); Tablet.solve(ans); Sound.fx.reveal();
+    if (lvl.mapScroll) { await wait(900); Dial.hide(); stage.classList.remove('map-scroll'); setBg('bg_map_table'); await wait(500); }
     seal.classList.remove('active'); seal.classList.add('done'); seal.textContent = '★';
     S.pathsOpen[L] = j + 1; MapView.refresh();
     HUD.fill(j);
@@ -1092,7 +1111,7 @@ $('#btnAgain').addEventListener('click', () => { Sound.fx.tap(); showTitle(); })
 function devButton(btn) {
   let d = $('#devBtns');
   if (!d) { d = document.createElement('div'); d.id = 'devBtns'; stage.appendChild(d); }
-  d.prepend(btn); $('.hud-right').style.marginRight = `${d.children.length * 60}px`;
+  d.prepend(btn); stage.classList.add('has-dev');
 }
 
 /* ---------- QA panel: jump to any step, auto-solve ---------- */
@@ -1178,7 +1197,7 @@ function showTitle() {
 $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.init(); Sound.fx.fanfare(); $('#title').classList.remove('on'); goChapter('story'); });
 
 /* ---------- optional UI art: used when the file exists, drawn in CSS otherwise ---------- */
-['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls'].forEach(n => {
+['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text'].forEach(n => {
   const img = new Image();
   img.onload = () => { stage.style.setProperty(`--a-${n}`, `url("${img.src}")`); stage.classList.add(`has-${n}`); };
   img.src = ASSET(n);
@@ -1190,5 +1209,6 @@ $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.in
  'bg_tunnel', 'bg_level1_amber_tunnel', 'bg_level2_shadow_chamber', 'bg_level3_crystal_cavern', 'bg_map_table', 'bg_final_path', 'bg_treasure_chamber']
   .forEach(n => { const i = new Image(); i.src = ASSET(n); });
 fit(); paintToggles(); setGems(); showTitle();
+if (document.fonts) document.fonts.ready.then(() => Tablet.fit()); // re-fit once the game font has loaded
 window.__tt = { goChapter, devButton, ctx: () => ({ step: QA.cur, label: QA.label, bg: bgNow }) };
 })();
