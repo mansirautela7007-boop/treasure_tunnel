@@ -117,18 +117,27 @@ const Voice = (() => {
   }
 
   // Recorded ElevenLabs clips (assets/audio/<clip>.mp3). Falls back to browser speech if a file is missing.
-  let clipEl = null;
+  let clipEl = null, cueTimers = [];
   const CLIP = n => (window.AUDIO && window.AUDIO[n]) || `assets/audio/${n}.mp3`;
-  function stopClip() { if (clipEl) { clipEl.onended = clipEl.onerror = null; clipEl.pause(); clipEl = null; } }
+  function stopClip() { if (clipEl) { clipEl.onended = clipEl.onerror = clipEl.ontimeupdate = null; clipEl.pause(); clipEl = null; } }
+  function clearCues() { cueTimers.forEach(clearTimeout); cueTimers = []; }
 
-  function say(text, who = 'narrator', clip = null) {
+  // cues: [{ word, fn }] — fn runs once when that word is spoken (first occurrence).
+  // Speech reports words as it reaches them; without that (or with voice off) the moment is estimated
+  // from where the word sits in the line; a recorded clip uses its playback position.
+  function say(text, who = 'narrator', clip = null, cues = null) {
     return new Promise(res => {
       const est = Math.min(9000, 900 + text.length * 62);
-      stopClip();
-      if (!on) { setTimeout(res, Math.min(est, 2600)); return; }
+      stopClip(); clearCues();
+      const spoken = speakable(text), lower = spoken.toLowerCase();
+      const pending = (cues || []).map(c => ({ ...c, at: Math.max(0, lower.search(new RegExp(`\\b${c.word.toLowerCase()}`))) }));
+      const fire = c => { const i = pending.indexOf(c); if (i >= 0) { pending.splice(i, 1); c.fn(); } };
+      const estimate = (ms, slack = 0) => pending.slice().forEach(c => cueTimers.push(setTimeout(() => fire(c), ms * c.at / Math.max(1, spoken.length) + slack)));
+      if (!on) { estimate(Math.min(est, 2600)); setTimeout(res, Math.min(est, 2600)); return; }
       if (clip) {
         const a = new Audio(CLIP(clip)); clipEl = a;
         let done = false; const fin = () => { if (!done) { done = true; res(); } };
+        a.ontimeupdate = () => { if (a.duration) pending.slice().forEach(c => { if (a.currentTime / a.duration >= c.at / spoken.length) fire(c); }); };
         a.onended = fin;
         a.onerror = () => { if (clipEl === a) { clipEl = null; say(text, who).then(fin); } };
         if (synth) synth.cancel();
@@ -138,7 +147,16 @@ const Voice = (() => {
       }
       if (!synth) { setTimeout(res, Math.min(est, 2600)); return; }
       synth.cancel();
-      const u = new SpeechSynthesisUtterance(speakable(text));
+      const u = new SpeechSynthesisUtterance(spoken);
+      if (pending.length) {
+        estimate(est, 1200); // only used if this browser never reports word boundaries
+        u.onboundary = e => {
+          if (e.name && e.name !== 'word') return;
+          clearCues();
+          const w = (lower.slice(e.charIndex).match(/^[a-z]+/) || [''])[0];
+          pending.slice().forEach(c => { if (w === c.word.toLowerCase() || e.charIndex >= c.at) fire(c); });
+        };
+      }
       const p = VOICES[who] || VOICES.narrator;
       if (voice) u.voice = voice;
       u.pitch = p.pitch; u.rate = p.rate; u.volume = 1;
@@ -150,7 +168,7 @@ const Voice = (() => {
   }
 
   return {
-    say, stop() { stopClip(); if (synth) synth.cancel(); },
+    say, stop() { stopClip(); clearCues(); if (synth) synth.cancel(); },
     get on() { return on; },
     toggle() { on = !on; if (!on) { stopClip(); if (synth) synth.cancel(); } return on; },
   };

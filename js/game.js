@@ -16,7 +16,8 @@ const cls = v => v > 0 ? 'pos' : v < 0 ? 'neg' : 'zer';
 const numHTML = v => `<span class="${cls(v)}">${fmt(v)}</span>`;
 
 /* ---------- inline art ---------- */
-const KEY_SVG = `<svg viewBox="0 0 100 100"><defs><linearGradient id="kg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".5" stop-color="#ffc83a"/><stop offset="1" stop-color="#c47f00"/></linearGradient></defs><g transform="rotate(-35 50 50)"><rect x="46" y="44" width="46" height="12" rx="4" fill="url(#kg)" stroke="#7a4a00" stroke-width="4"/><rect x="71" y="54" width="9" height="15" rx="2" fill="url(#kg)" stroke="#7a4a00" stroke-width="3"/><rect x="83" y="54" width="8" height="11" rx="2" fill="url(#kg)" stroke="#7a4a00" stroke-width="3"/><circle cx="30" cy="50" r="21" fill="url(#kg)" stroke="#7a4a00" stroke-width="4"/><circle cx="30" cy="50" r="9" fill="#7a4a00"/><circle cx="30" cy="50" r="5.5" fill="#4fc3ff"/></g></svg>`;
+// the key everywhere in the game: assets/ui_key.webp (upright, head at the top)
+const KEY_SVG = `<img class="keyart" src="${ASSET('ui_key')}" alt="" draggable="false">`;
 const GEM_SVG = `<svg viewBox="0 0 100 100"><polygon points="18,36 34,14 66,14 82,36 50,90" fill="#4fc3ff" stroke="#0b4f7a" stroke-width="5" stroke-linejoin="round"/><polygon points="18,36 82,36 50,90" fill="#2a9fe0"/><polygon points="34,14 50,36 66,14" fill="#c8f3ff"/><polygon points="18,36 34,14 50,36" fill="#8fdcff"/><polygon points="50,36 66,14 82,36" fill="#6fd0ff"/><polygon points="30,40 44,40 50,74" fill="#bff0ff" opacity=".6"/></svg>`;
 const PADLOCK_SVG = `<svg viewBox="0 0 130 150"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe9a0"/><stop offset=".55" stop-color="#e8a92a"/><stop offset="1" stop-color="#a86a0a"/></linearGradient></defs><g class="shackle"><path d="M32 72 V46 a33 33 0 0 1 66 0 V72" fill="none" stroke="#6d737c" stroke-width="18" stroke-linecap="round"/><path d="M32 72 V46 a33 33 0 0 1 66 0 V72" fill="none" stroke="#c9ced6" stroke-width="8" stroke-linecap="round"/></g><rect x="10" y="64" width="110" height="80" rx="16" fill="url(#lg)" stroke="#6b3d00" stroke-width="5"/><circle cx="65" cy="96" r="11" fill="#4a2800"/><rect x="60" y="100" width="10" height="24" rx="4" fill="#4a2800"/><circle cx="24" cy="78" r="4" fill="#fff6c8"/><circle cx="106" cy="78" r="4" fill="#fff6c8"/></svg>`;
 const ICONS = {
@@ -43,6 +44,8 @@ function badgeSVG(b) {
   return `<svg viewBox="0 0 220 250"><path d="M62 170 L40 246 L72 228 L92 248 L104 176 Z" fill="${b.dark}"/><path d="M158 170 L180 246 L148 228 L128 248 L116 176 Z" fill="${b.dark}"/><circle cx="110" cy="110" r="96" fill="#ffd54a" stroke="#7a4a00" stroke-width="6"/><circle cx="110" cy="110" r="84" fill="none" stroke="#fff3b0" stroke-width="4" stroke-dasharray="6 9"/><circle cx="110" cy="110" r="72" fill="${b.color}" stroke="${b.dark}" stroke-width="6"/><ellipse cx="88" cy="70" rx="34" ry="16" fill="#fff" opacity=".25"/>${icons[b.icon] || ''}</svg>`;
 }
 
+// hidden key box: a wooden crate with gold corners and a glowing "?"
+const KEYBOX_SVG = `<svg viewBox="0 0 100 100"><defs><linearGradient id="kbw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98a4a"/><stop offset="1" stop-color="#8a4e1e"/></linearGradient></defs><rect x="6" y="8" width="88" height="86" rx="10" fill="url(#kbw)" stroke="#4a2408" stroke-width="5"/><path d="M8 36 H92 M8 66 H92" stroke="#6b3a12" stroke-width="4" opacity=".55"/><g fill="#ffd54a" stroke="#7a4a00" stroke-width="3"><path d="M6 20 V14 a6 6 0 0 1 6 -6 H24 V20 Z"/><path d="M94 20 V14 a6 6 0 0 0 -6 -6 H76 V20 Z"/><path d="M6 82 V88 a6 6 0 0 0 6 6 H24 V82 Z"/><path d="M94 82 V88 a6 6 0 0 1 -6 6 H76 V82 Z"/></g><text class="q" x="50" y="68" text-anchor="middle" font-family="Lilita One, sans-serif" font-size="50" fill="#ffe680" stroke="#5a2e00" stroke-width="3">?</text><circle class="hole" cx="50" cy="52" r="15" fill="#2a1404" opacity="0"/></svg>`;
 const CHEST_SVG = `<svg viewBox="0 0 300 260" overflow="visible"><g class="burst">${Array.from({ length: 12 }, (_, i) => `<path d="M150 140 L${150 + 230 * Math.cos(i * Math.PI / 6 - .1)} ${140 + 230 * Math.sin(i * Math.PI / 6 - .1)} L${150 + 230 * Math.cos(i * Math.PI / 6 + .1)} ${140 + 230 * Math.sin(i * Math.PI / 6 + .1)} Z" fill="rgba(255,225,120,.35)"/>`).join('')}</g><ellipse cx="150" cy="250" rx="130" ry="12" fill="rgba(0,0,0,.4)"/><rect x="30" y="130" width="240" height="118" rx="14" fill="#8b4513" stroke="#3a1a00" stroke-width="7"/><rect x="30" y="160" width="240" height="14" fill="#e8a92a" stroke="#3a1a00" stroke-width="4"/><rect x="58" y="130" width="22" height="118" fill="#e8a92a" stroke="#3a1a00" stroke-width="4"/><rect x="220" y="130" width="22" height="118" fill="#e8a92a" stroke="#3a1a00" stroke-width="4"/><g class="coins"><circle cx="110" cy="128" r="16" fill="#ffd54a" stroke="#a86a0a" stroke-width="4"/><circle cx="150" cy="120" r="18" fill="#ffe27a" stroke="#a86a0a" stroke-width="4"/><circle cx="190" cy="128" r="16" fill="#ffd54a" stroke="#a86a0a" stroke-width="4"/><polygon points="128,110 140,96 152,110 140,126" fill="#ff4d6d" stroke="#7a0020" stroke-width="3"/><polygon points="166,112 176,100 186,112 176,124" fill="#4fc3ff" stroke="#0b4f7a" stroke-width="3"/></g><g class="lid"><path d="M30 132 V96 Q150 18 270 96 V132 Z" fill="#a0522d" stroke="#3a1a00" stroke-width="7" stroke-linejoin="round"/><path d="M58 128 V86 M242 128 V86" stroke="#e8a92a" stroke-width="20"/><path d="M58 128 V86 M242 128 V86" stroke="#3a1a00" stroke-width="4" opacity=".4"/><rect x="132" y="112" width="36" height="38" rx="6" fill="#ffd54a" stroke="#3a1a00" stroke-width="5"/><circle cx="150" cy="128" r="6" fill="#3a1a00"/></g></svg>`;
 
 /* ---------- map geometry (map image is 1200 × 800) ---------- */
@@ -174,7 +177,7 @@ function toast(text, small = false) {
 /* ---------- speech bubble ---------- */
 const WHO = { wizard: 'Wizard', explorer: 'Explorer', narrator: 'Narrator' };
 let lastLine = { who: 'narrator', text: '' };
-function bubble(who, text, mode = 'bottom', speak = true, clip = null) {
+function bubble(who, text, mode = 'bottom', speak = true, clip = null, cues = null) {
   const b = $('#bubble');
   b.className = `on ${mode} ${who}`;
   b.querySelector('.av').src = who === 'wizard' ? ASSET('wizard_avatar') : who === 'explorer' ? ASSET('explorer_avatar') : NARRATOR_AV;
@@ -182,14 +185,33 @@ function bubble(who, text, mode = 'bottom', speak = true, clip = null) {
   b.querySelector('.txt').innerHTML = text;
   retrigger(b, 'pop');
   lastLine = { who, text, clip };
-  return speak ? Voice.say(text, who, clip) : Promise.resolve();
+  return speak ? Voice.say(text, who, clip, cues) : Promise.resolve();
 }
 async function say(who, text, mode = 'bottom') { const r = RUN; await bubble(who, text, mode); guard(r); }
 function bubbleText(text) { $('#bubble .txt').innerHTML = text; }
 function hideBubble() { $('#bubble').className = ''; }
 $('#btnReplay').innerHTML = ICONS.replay;
 $('#btnReplay').addEventListener('click', e => { e.stopPropagation(); Sound.fx.tap(); Voice.say(lastLine.text, lastLine.who, lastLine.clip); });
-$('#btnHelp').addEventListener('click', e => { e.stopPropagation(); Sound.fx.tap(); retrigger($('#bubble'), 'pop'); Voice.say(lastLine.text, lastLine.who, lastLine.clip); });
+$('#btnHelp').addEventListener('click', e => {
+  e.stopPropagation(); Sound.fx.tap();
+  if (LEVELS[S.level] && LEVELS[S.level].helpRules) { toggleRules(); return; }
+  retrigger($('#bubble'), 'pop'); Voice.say(lastLine.text, lastLine.who, lastLine.clip);
+});
+// the ? button belongs to the game part (key hunt, map puzzles) only
+function setPlaying(on) { stage.classList.toggle('playing', on); if (!on) toggleRules(false); }
+// ? opens a dropdown of every direction rule under the button; × closes it
+function toggleRules(open = !$('#rulesDrop').classList.contains('on')) {
+  const d = $('#rulesDrop'), b = $('#btnHelp');
+  if (open) {
+    d.innerHTML = LEVELS.flatMap(l => l.rule).map(([s, w, dir]) => `<div class="rc"><b>${s}</b> ${w} → ${dir === 'left' ? '◀ left' : 'right ▶'}</div>`).join('');
+    const r = b.getBoundingClientRect(), st = stage.getBoundingClientRect(), k = st.width / STAGE_W;
+    // the notch (140px in) sits under the button; the panel hangs just below it
+    d.style.left = `${(r.left + r.width / 2 - st.left) / k - 140}px`; d.style.top = `${(r.bottom - st.top) / k + 14}px`;
+  }
+  d.classList.toggle('on', open);
+  b.textContent = open ? '×' : '?'; b.classList.toggle('active', open);
+  b.setAttribute('aria-label', open ? 'Close the rules' : 'Show the rules');
+}
 
 /* ---------- waiting for the player ---------- */
 let pending = { next: null, cont: null, dial: null, dir: null, tapTarget: null };
@@ -205,7 +227,7 @@ function fireNext() { if (pending.next) { const f = pending.next; pending.next =
 $('#btnNext').addEventListener('click', e => { e.stopPropagation(); fireNext(); });
 stage.addEventListener('pointerdown', e => {
   if (!pending.next) return;
-  if (e.target.closest('button, #tray, #dirPick, .overlay.on, #hud, .mpiece')) return;
+  if (e.target.closest('button, #tray, #dirPick, .overlay.on, #hud, .mpiece, #rulesDrop')) return;
   fireNext();
 });
 
@@ -230,7 +252,7 @@ $('#gems .gem-ico').innerHTML = GEM_SVG;
 function setGems() { $('#gemCount').textContent = S.gems; }
 async function addGem(from) {
   S.gems++; S.levelGems[S.level]++;
-  await fly(GEM_SVG, from, stagePos($('#gems .gem-ico')), 700, 46);
+  if ($('#gems').offsetParent) await fly(GEM_SVG, from, stagePos($('#gems .gem-ico')), 700, 46);
   setGems(); retrigger($('#gems'), 'bump'); Sound.fx.gem();
 }
 function streakHit(firstTry) {
@@ -394,11 +416,11 @@ const NL = {
       s.classList.remove('trail', 'land', 'miss', 'pulse', 'start');
       if (!s.classList.contains('mark')) s.classList.remove('show');
     });
-    $('#keyprize').classList.remove('on');
+    $('#keyprize').classList.remove('on', 'boxpop'); $('#keyBox')?.remove();
   },
-  arrow(from, len, label, flipped = false) {
-    let a = $('#nlArrow');
-    if (!a) { a = document.createElement('div'); a.className = 'nl-arrow'; a.id = 'nlArrow'; $('#nl').appendChild(a); }
+  arrow(from, len, label, flipped = false, id = 'nlArrow') {
+    let a = document.getElementById(id);
+    if (!a) { a = document.createElement('div'); a.className = 'nl-arrow'; a.id = id; $('#nl').appendChild(a); }
     const w = len * STEP;
     a.style.left = `${this.x(from)}px`; a.style.width = `${w}px`;
     a.innerHTML = arrowSVG(w) + `<div class="lab">${label}</div>`;
@@ -406,7 +428,7 @@ const NL = {
     void a.offsetWidth; a.classList.add('on'); Sound.fx.whoosh();
     return a;
   },
-  hideArrow() { $('#nlArrow')?.remove(); },
+  hideArrow() { document.querySelectorAll('#nl .nl-arrow').forEach(a => a.remove()); },
 };
 
 /* ---------- number pad ---------- */
@@ -610,7 +632,8 @@ function resetUI() {
   MapView.hide(); HUD.hide();
   document.querySelectorAll('.fly, .puff, .poofcloud').forEach(e => e.remove());
   ['#badgeModal', '#final', '#title'].forEach(s => $(s).classList.remove('on'));
-  S.streak = 0; stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll');
+  S.streak = 0; stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll', 'path-art', 'unlock-scroll', 'playing', 'stones-lava'); toggleRules(false);
+  $('#pathArt').classList.remove('glow', 'faint'); $('#pathArt .pa-token').classList.remove('on'); $('#pathArt .pa-lit').setAttribute('d', '');
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
 
@@ -638,12 +661,10 @@ const SCENES = {
   },
   async lostMap() {
     actor('exp', { img: 'explorer_idle', x: 230, y: 600, h: 340, cls: 'idle' });
-    mapScrap(420, 470, 150, -10, 0); mapScrap(800, 430, 110, 14, 1); mapScrap(1060, 470, 120, -18, 2);
     Sound.fx.whoosh(); puffs(480, 530); puffs(850, 480, 6); puffs(1110, 520, 6);
   },
   async worried() {
     actor('exp', { img: 'explorer_worried', x: 420, y: 640, h: 480, cls: 'idle' });
-    mapScrap(860, 440, 100, 14, 1); mapScrap(1080, 470, 110, -18, 2);
   },
   async wizardAppears() {
     actor('exp', { img: 'explorer_worried', x: 319, y: 630, h: 336, cls: 'idle' });
@@ -751,16 +772,18 @@ function wizardOnLedge(img, enter = false) {
 async function teach(L) {
   const lvl = LEVELS[L];
   for (const t of lvl.teach) {
-    Tablet.rule(t.ost);
+    if (t.ost) Tablet.rule(t.ost); else Tablet.hide(); // no on-screen text: the sign goes back up
     if (t.type === 'zero') {
       NL.place(0, true); NL.stone(0).classList.add('pulse'); NL.hop();
     } else if (t.type === 'arrows') {
       NL.stone(0).classList.remove('pulse');
-      bubble(t.who, t.text, 'left');
-      NL.face(1); NL.arrow(0, 3, 'Add'); await wait(2200);
-      NL.face(-1); NL.arrow(0, 3, 'Subtract', true); await wait(2000);
-      NL.face(1);
-      await nextTap(); NL.hideArrow(); continue;
+      // each arrow appears as the voice says its word ("add", then "subtract")
+      let live = true;
+      bubble(t.who, t.text, 'left', true, null, [
+        { word: 'add', fn: () => { if (live) { NL.face(1); NL.arrow(0, 3, 'Add', false, 'nlArrowAdd'); } } },
+        { word: 'subtract', fn: () => { if (live) { NL.face(-1); NL.arrow(0, 3, 'Subtract', true); } } },
+      ]);
+      await nextTap(); live = false; NL.hideArrow(); NL.face(1); continue;
     } else if (t.type === 'confused') {
       NL.place(0, true); NL.pose('explorer_confused'); NL.hop();
     } else if (t.type === 'wizard') {
@@ -786,6 +809,7 @@ async function teach(L) {
       NL.arrow(0, 3, t.to === 'left' ? 'Move left' : 'Move right', t.to === 'left');
       await nextTap(); NL.hideArrow(); continue;
     }
+    if (t.pose) { NL.pose(t.pose); NL.hop(); }
     bubble(t.who, t.text, 'left');
     await nextTap();
   }
@@ -798,16 +822,20 @@ async function keyHunt(L, from = 0) {
   const lvl = LEVELS[L];
   HUD.keys(lvl.keys.length); setRules(L);
   for (let i = 0; i < from; i++) HUD.fill(i);
+  setPlaying(true);
+  if (lvl.keysIntro && from === 0) { if (lvl.signOnlyWithOst) Tablet.hide(); await say('wizard', lvl.keysIntro, 'left'); }
   for (let i = from; i < lvl.keys.length; i++) {
     const it = lvl.keys[i], ans = it.start + it.delta;
     let tries = 0;
     QA.at(`${L}:keys:${i}`, it.delta > 0 ? 'right' : 'left', ans);
+    // a question can bring its own background and stones; the next one goes back to the chamber's
+    setBg(it.bg || lvl.bg); stage.classList.toggle('stones-lava', it.stones === 'lava');
     NL.resetMarks(); Tablet.eq(it.eq);
     if (NL.pos !== it.start) await NL.teleport(it.start); else NL.face(1);
     NL.markStart(it.start);
     await say('wizard', it.vo, 'left');
     const n = Math.abs(it.delta), submit = lvl.submit || 'JUMP';
-    bubble('wizard', lvl.directPrompt
+    if (!lvl.voOnly) bubble('wizard', lvl.directPrompt
       ? `Start at ${fmt(it.start)} and move ${n} step${n === 1 ? '' : 's'} ${it.delta > 0 ? 'right' : 'left'}. Then press ${submit}.`
       : `Move the explorer with Left and Right, then press ${submit} to grab the key!`, 'left', i === 0 || lvl.theme === 'cavern');
     while (true) {
@@ -820,6 +848,7 @@ async function keyHunt(L, from = 0) {
     }
     await keySuccess(L, i, it, ans, tries === 0);
   }
+  setPlaying(false); stage.classList.remove('stones-lava');
 }
 
 async function wrongKey(it, v, tries, ans) {
@@ -851,8 +880,22 @@ async function keySuccess(L, i, it, ans, firstTry) {
   Mover.hide(); NL.hideArrow(); $('#counter').classList.remove('on');
   Tablet.solve(ans);
   const s = NL.stone(ans); s.classList.remove('pulse'); s.classList.add('land', 'show');
-  NL.pose('explorer_jump_key'); NL.jump(); Sound.fx.key();
-  const k = $('#keyprize'); k.style.left = `${NL.x(ans) + 100}px`; retrigger(k, 'on');
+  NL.pose('explorer_jump_key'); NL.jump();
+  const k = $('#keyprize');
+  if (LEVELS[L].keyBox) {
+    // the hidden box sits where the explorer's head reaches at the top of the jump
+    const box = document.createElement('div'); box.className = 'keybox'; box.id = 'keyBox';
+    // art: rays and halo behind, the crate on top (a drawn box if the art is missing)
+    if (stage.classList.contains('has-ui_keybox')) { box.classList.add('art'); box.innerHTML = '<i class="kb-rays"></i><i class="kb-halo"></i><i class="kb-art"></i>'; }
+    else box.innerHTML = KEYBOX_SVG;
+    box.style.left = `${NL.x(ans)}px`; $('#nl').appendChild(box);
+    await wait(RM ? 100 : 200); // the head reaches the (now lower) box a little sooner
+    box.classList.add('hit'); Sound.fx.thud(); Sound.fx.pop();
+    const bp = stagePos(box); FX.burst(bp.x, bp.y, 18, 'star', 6);
+    await wait(180);
+    k.style.left = `${NL.x(ans) + 82}px`; retrigger(k, 'boxpop'); k.classList.add('on'); Sound.fx.key();
+    box.classList.add('open');
+  } else { Sound.fx.key(); k.style.left = `${NL.x(ans) + 100}px`; retrigger(k, 'on'); }
   const p = stagePos(NL.exp); FX.burst(p.x, p.y - 60, 30, 'star', 8);
   toast(it.cele, it.cele.length < 8); FX.confetti(it.size);
   if (firstTry) addGem({ x: p.x, y: p.y - 80 });
@@ -862,24 +905,30 @@ async function keySuccess(L, i, it, ans, firstTry) {
   const r = RUN; await fly(KEY_SVG, stagePos(k), HUD.slotPos(i), 800, 70); guard(r);
   HUD.fill(i); Sound.fx.coin();
   NL.pose('explorer_thumbsup');
-  await say('wizard', `Correct! You found it. The explorer reached ${numHTML(ans)}. The key is right here.`, 'left');
+  await say('wizard', it.found || `Correct! You found it. The explorer reached ${numHTML(ans)}. The key is right here.`, 'left');
   await cont(i < LEVELS[L].keys.length - 1 ? 'Next key' : 'Unlock the map');
   NL.pose('explorer_idle');
 }
 
 async function unlock(L) {
+  if (LEVELS[L].artMap) return unlockArt(L);
+  const ui = !!LEVELS[L].mapScroll, mode = ui ? 'side' : 'bottomL';
+  stage.classList.toggle('map-ui', ui);
   $('#nlWrap').classList.remove('on'); Tablet.hide(); $('#ruleChip').classList.remove('on');
-  setBg('bg_map_table'); MapView.build(); MapView.place(244, 70, .66, true); MapView.show();
+  // Chamber 1: the map sits on the scroll over the blurred chamber, like the path reveal
+  const onScroll = !!LEVELS[L].pathArt && ui; stage.classList.toggle('unlock-scroll', onScroll);
+  setBg(onScroll ? LEVELS[L].bg : 'bg_map_table'); MapView.build();
+  onScroll ? MapView.place(275, 146, .613, true) : ui ? MapView.place(268, 116, .62, true) : MapView.place(244, 70, .66, true); MapView.show();
   const piece = document.querySelectorAll('.mpiece')[L];
   const lock = MapView.padlock(L);
   actor('exp', { img: 'explorer_idle', x: 1150, y: 600, h: 300, cls: 'idle', enter: true });
   piece.classList.add('glow');
-  bubble('wizard', UNLOCK.wizard, 'bottomL');
+  bubble('wizard', UNLOCK.wizard, mode);
   const r = RUN;
   await new Promise(res => {
     const go = () => { piece.removeEventListener('click', go); pending.tapTarget = null; clearInterval(idleT); res(); };
     piece.addEventListener('click', go); pending.tapTarget = go;
-    const idleT = setInterval(() => { if (r !== RUN) { clearInterval(idleT); return; } bubble('wizard', UNLOCK.idle, 'bottomL'); document.querySelectorAll('#slots .slot').forEach(s => pulseClass(s, 'bump', 600)); }, 14000);
+    const idleT = setInterval(() => { if (r !== RUN) { clearInterval(idleT); return; } bubble('wizard', UNLOCK.idle, mode); document.querySelectorAll('#slots .slot').forEach(s => pulseClass(s, 'bump', 600)); }, 14000);
   });
   guard(r);
   piece.classList.remove('glow'); Voice.stop();
@@ -899,9 +948,9 @@ async function unlock(L) {
   toast(UNLOCK.ost);
   actor('exp', { img: 'explorer_thumbsup' }); actorAnim('exp', 'jump');
   await wait(600);
-  await say('explorer', UNLOCK.explorer, 'bottomL');
+  await say('explorer', UNLOCK.explorer, mode);
   await cont('Open the map', true);
-  lock.remove();
+  lock.remove(); stage.classList.remove('unlock-scroll');
 }
 
 function showMiniLine(start, ans) {
@@ -935,13 +984,14 @@ function mapScene() {
 }
 
 async function mysteries(L, from = 0) {
-  const lvl = LEVELS[L];
-  mapScene(); setRules(L);
-  stage.classList.toggle('map-ui', !!lvl.mapScroll);
+  const lvl = LEVELS[L], art = !!lvl.artMap;
+  if (art) { setupPathArt(L); $('#pathArt').classList.add('faint'); litTo(lvl.pathArt, from); setRules(L); }
+  else { mapScene(); setRules(L); stage.classList.toggle('map-ui', !!lvl.mapScroll); }
   HUD.seals(lvl.mysteries.length);
   if (from === 0) for (const line of lvl.mapIntro) { bubble(line.who, line.text, 'side'); await nextTap(); }
-  MapView.seals(L); await wait(1100);
-  for (let j = 0; j < from; j++) { const s = MapView.seal(j); s.classList.add('done'); s.textContent = '★'; HUD.fill(j); }
+  if (!art) { MapView.seals(L); await wait(1100); }
+  setPlaying(true);
+  for (let j = 0; j < from; j++) { HUD.fill(j); const s = !art && MapView.seal(j); if (s) { s.classList.add('done'); s.textContent = '★'; } }
   for (let j = from; j < lvl.mysteries.length; j++) {
     const m = lvl.mysteries[j], ans = m.start + m.delta;
     let tries = 0;
@@ -951,19 +1001,20 @@ async function mysteries(L, from = 0) {
       stage.classList.add('map-scroll'); setBg(lvl.bg); Sound.fx.whoosh(); await wait(450);
     }
     Dial.clear(); Tablet.eq(m.eq); $('#hintArrow').classList.remove('on'); $('#miniLine').classList.remove('on');
-    const seal = MapView.seal(j); seal.classList.add('active');
+    const seal = art ? null : MapView.seal(j); seal?.classList.add('active');
     actor('exp', { img: 'explorer_idle' });
+    // a puzzle without a line of its own: the banner clears and the sign carries the equation
     if (m.tutorial) {
       showMiniLine(m.start, ans);
-      bubble('wizard', m.vo, 'side');
+      if (m.vo) bubble('wizard', m.vo, 'side'); else hideBubble();
       await wait(1800); await animateMiniLine(m.start, m.delta);
-    } else {
+    } else if (m.vo) {
       await say('wizard', m.vo, 'side');
-    }
+    } else hideBubble();
     Dial.show();
     while (true) {
       const v = await Dial.ask({
-        idle: () => { bubble('wizard', m.idle, 'side'); Dial.pulse(); retrigger(seal, 'active'); },
+        idle: () => { bubble('wizard', m.idle, 'side'); Dial.pulse(); if (seal) retrigger(seal, 'active'); },
         touched: () => { $('#hintArrow').classList.remove('on'); },
       });
       if (v === ans) break;
@@ -983,11 +1034,12 @@ async function mysteries(L, from = 0) {
     }
     // solved
     Dial.good(); Tablet.solve(ans); Sound.fx.reveal();
-    if (lvl.mapScroll) { await wait(900); Dial.hide(); stage.classList.remove('map-scroll'); setBg('bg_map_table'); await wait(500); }
-    seal.classList.remove('active'); seal.classList.add('done'); seal.textContent = '★';
-    S.pathsOpen[L] = j + 1; MapView.refresh();
+    if (lvl.mapScroll) { await wait(900); Dial.hide(); stage.classList.remove('map-scroll'); if (!art) setBg('bg_map_table'); await wait(500); }
+    if (seal) { seal.classList.remove('active'); seal.classList.add('done'); seal.textContent = '★'; }
+    S.pathsOpen[L] = j + 1;
+    if (art) { litTo(lvl.pathArt, j + 1); retrigger($('#pathArt .pa-lit'), 'flash'); } else MapView.refresh();
     HUD.fill(j);
-    const sp = MapView.toStage(MAP.routes[L][j + 1]); FX.burst(sp.x, sp.y, j === 3 ? 40 : 22, 'star', j === 3 ? 10 : 7);
+    const sp = art ? artPoint(lvl.pathArt, lvl.pathArt.route[pathCut(lvl.pathArt, j + 1)]) : MapView.toStage(MAP.routes[L][j + 1]); FX.burst(sp.x, sp.y, j === 3 ? 40 : 22, 'star', j === 3 ? 10 : 7);
     toast(j === 3 ? '4/4 SOLVED!' : `${j + 1}/4 SOLVED`, true);
     actor('exp', { img: 'explorer_thumbsup' }); actorAnim('exp', 'hop');
     if (tries === 0) addGem({ x: 640, y: 120 });
@@ -997,11 +1049,12 @@ async function mysteries(L, from = 0) {
     await wait(500);
     $('#miniLine').classList.remove('on');
   }
-  Dial.hide();
+  Dial.hide(); setPlaying(false);
 }
 
 async function revealed(L) {
   const lvl = LEVELS[L], rv = lvl.revealed;
+  if (lvl.pathArt) return revealedArt(L);
   if (!$('#mapView').classList.contains('on')) mapScene();
   Tablet.rule(rv.ost); $('#mapPaths').classList.add('allglow');
   FX.confetti('huge'); Sound.fx.fanfare(); toast(rv.ost, true);
@@ -1024,6 +1077,67 @@ async function revealed(L) {
   for (let k = 1; k < route.length; k++) { MapView.token(route[k]); Sound.fx.step(); await wait(RM ? 300 : 900); }
   FX.burst(MapView.toStage(route[4]).x, MapView.toStage(route[4]).y, 30, 'star', 8);
   actor('exp', { img: 'explorer_point' }); actorAnim('exp', 'jump');
+  await say('explorer', rv.explorer, 'side');
+  await wait(400);
+}
+
+// the route art on the scroll: sized to its own shape, 760 wide, centred on the paper (top 145, 491 tall)
+function setupPathArt(L) {
+  const pa = LEVELS[L].pathArt, art = $('#pathArt');
+  art.querySelector('.pa-img').style.backgroundImage = `url(${ASSET(pa.img)})`;
+  const ah = 760 * pa.h / pa.w; art.style.height = `${ah}px`; art.style.top = `${145 + (491 - ah) / 2}px`;
+  art.querySelector('.pa-token').style.backgroundImage = `url(${ASSET('explorer_avatar')})`;
+  const svg = art.querySelector('svg'), d = pa.route.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' ');
+  svg.setAttribute('viewBox', `0 0 ${pa.w} ${pa.h}`);
+  svg.querySelector('.pa-glow').setAttribute('d', d); svg.querySelector('.pa-hit').setAttribute('d', d);
+  $('#nlWrap').classList.remove('on'); setBg(LEVELS[L].bg);
+  stage.classList.add('map-ui', 'path-art');
+  return pa;
+}
+// light the route up to the end of section k of 4 (k = 0 → nothing lit)
+const pathCut = (pa, k) => Math.round((pa.route.length - 1) * k / 4);
+function litTo(pa, k) {
+  const pts = pa.route.slice(0, pathCut(pa, k) + 1);
+  $('#pathArt .pa-lit').setAttribute('d', k ? pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' ') : '');
+}
+// stage position of a point on the route art
+function artPoint(pa, [x, y]) {
+  const r = $('#pathArt').getBoundingClientRect(), s = stage.getBoundingClientRect(), k = s.width / STAGE_W;
+  return { x: (r.left - s.left + x / pa.w * r.width) / k, y: (r.top - s.top + y / pa.h * r.height) / k };
+}
+
+// Chamber 1 "unlock": no map or padlock; the path art, dimmed (route still hidden), while the lines play
+async function unlockArt(L) {
+  Tablet.hide(); $('#ruleChip').classList.remove('on');
+  const pa = setupPathArt(L); litTo(pa, 0); $('#pathArt').classList.add('faint'); Sound.fx.sparkle();
+  await wait(500);
+  bubble('wizard', UNLOCK.wizard, 'side'); await nextTap();
+  bubble('explorer', UNLOCK.explorer, 'side'); await nextTap();
+}
+
+// the revealed route as its own illustration: the dashed path glows, a tap sends the explorer along it
+async function revealedArt(L) {
+  const lvl = LEVELS[L], rv = lvl.revealed, art = $('#pathArt'), tok = art.querySelector('.pa-token');
+  const pa = setupPathArt(L);
+  art.classList.remove('faint'); litTo(pa, lvl.artMap ? 4 : 0);
+  const at = ([x, y]) => { tok.style.left = `${x / pa.w * 100}%`; tok.style.top = `${y / pa.h * 100}%`; };
+  Sound.fx.reveal();
+  await wait(500);
+  FX.confetti('huge'); Sound.fx.fanfare(); toast(rv.ost, true);
+  await say('wizard', rv.wizard, 'side');
+  art.classList.add('glow');
+  bubble('wizard', 'Tap the glowing path to follow it!', 'side', false);
+  const r = RUN, hit = art.querySelector('.pa-hit');
+  await new Promise(res => {
+    const go = () => { hit.removeEventListener('click', go); pending.tapTarget = null; clearInterval(t); res(); };
+    hit.addEventListener('click', go); pending.tapTarget = go;
+    const t = setInterval(() => { if (r !== RUN) { clearInterval(t); return; } bubble('wizard', rv.idle, 'side'); }, 14000);
+  });
+  guard(r);
+  Sound.fx.tap(); Voice.stop(); art.classList.remove('glow');
+  at(pa.route[0]); tok.classList.add('on'); await wait(400);
+  for (let k = 1; k < pa.route.length; k++) { at(pa.route[k]); if (k % 2) Sound.fx.step(); await wait(RM ? 120 : 260); }
+  const p = stagePos(tok); FX.burst(p.x, p.y, 30, 'star', 8); Sound.fx.sparkle();
   await say('explorer', rv.explorer, 'side');
   await wait(400);
 }
@@ -1197,7 +1311,7 @@ function showTitle() {
 $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.init(); Sound.fx.fanfare(); $('#title').classList.remove('on'); goChapter('story'); });
 
 /* ---------- optional UI art: used when the file exists, drawn in CSS otherwise ---------- */
-['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text'].forEach(n => {
+['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text', 'ui_keybox', 'ui_platform_lava'].forEach(n => {
   const img = new Image();
   img.onload = () => { stage.style.setProperty(`--a-${n}`, `url("${img.src}")`); stage.classList.add(`has-${n}`); };
   img.src = ASSET(n);
