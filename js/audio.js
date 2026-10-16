@@ -2,17 +2,22 @@
    Voice: the browser's built-in speech synthesis reads each line aloud. */
 
 const Sound = (() => {
-  let ctx = null, master, sfx, amb, on = true, ambTimer = null, drone = null;
+  let ctx = null, master, sfx, amb, mus, on = true, ambTimer = null, drone = null, music = null, musicWanted = false, ducked = false;
+  const MUSIC_DEFAULT = 0.2, DUCK = 0.4; // music sits under the voice; it dips further while a line is spoken
+  let musicVol = MUSIC_DEFAULT, musicMuted = false; // the QA panel's slider can change the volume; the music button mutes it
 
   function init() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
+    ctx.onstatechange = () => document.dispatchEvent(new Event('tt-sound'));
     master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
     sfx = ctx.createGain(); sfx.gain.value = 0.7; sfx.connect(master);
     amb = ctx.createGain(); amb.gain.value = 0.0; amb.connect(master);
+    mus = ctx.createGain(); mus.gain.value = 0; mus.connect(master);
     startAmbience();
+    if (musicWanted) startMusic();
   }
 
   function tone(freq, dur, { type = 'sine', vol = 0.2, slide = null, delay = 0, attack = 0.005, out = null } = {}) {
@@ -87,10 +92,40 @@ const Sound = (() => {
     }, 2600);
   }
 
+  /* background music: "Treasure Hunter" by TAD (CC0, opengameart.org/content/treasure-hunter), assets/audio/bgm_treasure_hunter.m4a.
+     Played through Web Audio so the loop has no gap; the silence the encoder adds at each end is trimmed off. */
+  const MUSIC_SRC = () => (window.AUDIO && window.AUDIO.bgm_treasure_hunter) || 'assets/audio/bgm_treasure_hunter.m4a';
+  function musicLevel(t = 0.6) { if (ctx && mus) mus.gain.setTargetAtTime(on && musicWanted && !musicMuted ? musicVol * (ducked ? DUCK : 1) : 0, ctx.currentTime, t); }
+  async function startMusic() {
+    musicWanted = true;
+    if (!ctx) return; // starts once sound is unlocked by the first tap
+    musicLevel(1.2);
+    if (music) return;
+    music = 'loading';
+    try {
+      const buf = await ctx.decodeAudioData(await (await fetch(MUSIC_SRC())).arrayBuffer());
+      const d = buf.getChannelData(0), loud = i => Math.abs(d[i]) > 0.002;
+      let a = 0, b = d.length - 1;
+      while (a < d.length && !loud(a)) a++;
+      while (b > a && !loud(b)) b--;
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.loop = true; src.loopStart = a / buf.sampleRate; src.loopEnd = (b + 1) / buf.sampleRate;
+      src.connect(mus); src.start(0, src.loopStart); music = src;
+    } catch (e) { music = null; } // no music file: the game plays on without it
+  }
+  function duck(on_) { ducked = on_; musicLevel(on_ ? 0.15 : 0.8); }
+
   return {
-    init, fx: new Proxy(fx, { get: (o, k) => (...a) => { try { o[k](...a); } catch (e) {} } }),
+    init, music: startMusic, duck,
+    get running() { return !!ctx && ctx.state === 'running'; },
+    get musicVolume() { return musicVol; },
+    set musicVolume(v) { musicVol = Math.max(0, Math.min(1, v)); musicLevel(0.05); },
+    MUSIC_DEFAULT,
+    get musicMuted() { return musicMuted; },
+    set musicMuted(m) { musicMuted = !!m; musicLevel(0.25); },
+    fx: new Proxy(fx, { get: (o, k) => (...a) => { try { o[k](...a); } catch (e) {} } }),
     get on() { return on; },
-    toggle() { on = !on; if (ctx) amb.gain.setTargetAtTime(on ? 0.5 : 0, ctx.currentTime, 0.3); return on; },
+    toggle() { on = !on; if (ctx) amb.gain.setTargetAtTime(on ? 0.5 : 0, ctx.currentTime, 0.3); musicLevel(0.3); return on; },
   };
 })();
 
@@ -126,7 +161,14 @@ const Voice = (() => {
   // Speech reports words as it reaches them; without that (or with voice off) the moment is estimated
   // from where the word sits in the line; a recorded clip uses its playback position.
   function say(text, who = 'narrator', clip = null, cues = null) {
-    return new Promise(res => {
+    Sound.duck(true);
+    return sayLine(text, who, clip, cues).finally(() => { if (!speaking) Sound.duck(false); });
+  }
+  let speaking = 0;
+  function sayLine(text, who, clip, cues) {
+    const me = ++speaking;
+    return new Promise(res0 => {
+      const res = () => { if (speaking === me) speaking = 0; res0(); };
       const est = Math.min(9000, 900 + text.length * 62);
       stopClip(); clearCues();
       const spoken = speakable(text), lower = spoken.toLowerCase();
@@ -168,7 +210,7 @@ const Voice = (() => {
   }
 
   return {
-    say, stop() { stopClip(); clearCues(); if (synth) synth.cancel(); },
+    say, stop() { stopClip(); clearCues(); if (synth) synth.cancel(); speaking = 0; Sound.duck(false); },
     get on() { return on; },
     toggle() { on = !on; if (!on) { stopClip(); if (synth) synth.cancel(); } return on; },
   };

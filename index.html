@@ -81,15 +81,38 @@
       <div id="tapHint">Tap to continue</div>
     </div>
 
-    <div id="title" class="overlay">
-      <div class="title-glow"></div>
-      <div class="logo">
-        <div class="logo-key"></div>
-        <h1><span>Treasure</span><span>Tunnel</span></h1>
-        <p>An integers adventure on the number line</p>
+    <button id="btnMusic" class="music-btn" aria-label="Turn music off"></button>
+
+    <div id="title" class="overlay cover">
+      <!-- the cavern, its torch and crystal lights move together (slow camera drift) -->
+      <div class="cv-scene">
+        <img class="cv-bg" data-asset="cover_bg" alt="">
+        <i class="cv-light torch" style="left:203px;top:128px"></i>
+        <i class="cv-light torch" style="left:1072px;top:128px"></i>
+        <i class="cv-light torch small" style="left:458px;top:410px"></i>
+        <i class="cv-light torch small" style="left:825px;top:410px"></i>
+        <i class="cv-light tunnel" style="left:636px;top:548px"></i>
+        <i class="cv-light crystal" style="left:31px;top:150px"></i>
+        <i class="cv-light crystal" style="left:34px;top:383px"></i>
+        <i class="cv-light crystal" style="left:253px;top:490px"></i>
+        <i class="cv-light crystal" style="left:1263px;top:150px"></i>
+        <i class="cv-light crystal" style="left:1256px;top:513px"></i>
+        <i class="cv-light crystal" style="left:896px;top:536px"></i>
       </div>
-      <button id="btnStart" class="bigbtn huge">Start the adventure</button>
-      <p class="title-note">Sound on for the best adventure</p>
+      <div class="cv-motes" aria-hidden="true"></div>
+      <div class="cv-logo">
+        <div class="cv-bob">
+          <img data-asset="cover_logo" alt="Treasure Tunnel">
+          <i class="cv-gem"></i>
+          <i class="cv-shine"></i>
+        </div>
+      </div>
+      <div class="cv-explorer"><img data-asset="cover_explorer" alt=""></div>
+      <div class="cv-wizard"><div class="cv-sway"><img data-asset="cover_wizard" alt=""><i class="cv-orb"></i></div></div>
+      <button id="soundHint" class="cv-sound" aria-label="Turn on music"><span aria-hidden="true">♪</span> Tap for music</button>
+      <button id="btnStart" class="cv-start" aria-label="Start">
+        <span class="cv-pulse"><img data-asset="cover_start" alt=""><i class="cv-shine"></i></span>
+      </button>
     </div>
 
     <div id="pause" class="overlay modal" role="dialog" aria-label="Menu">
