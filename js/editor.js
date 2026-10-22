@@ -157,7 +157,7 @@ function applyAll() {
   const now = new Set(), fonts = new Set();
   [...edits].sort((a, b) => RANK[a.scope] - RANK[b.scope]).forEach(o => {
     if (!active(o)) return;
-    const el = find(o); if (el) { setStyle(el, o); setFont(el, o, fonts); now.add(el); }
+    const el = find(o); if (el && !el.closest(AUTO_PLACED)) { setStyle(el, o); setFont(el, o, fonts); now.add(el); }
   });
   styled.forEach(el => { if (!now.has(el)) clearStyle(el); });
   fontStyled.forEach(t => { if (!fonts.has(t)) clearFont(t); });
@@ -204,7 +204,9 @@ function unit(el) {
   while (el.parentElement && el.parentElement !== stage && !el.id && !el.dataset.actor && !el.parentElement.id) el = el.parentElement;
   return el;
 }
-const pickable = el => !el.closest('#edLayer, #devBtns') && !(el instanceof SVGElement && el.tagName.toLowerCase() !== 'svg');
+// the speech bubble and the tutorial place themselves next to whoever is speaking, so the editor leaves them alone
+const AUTO_PLACED = '#bubble, #coach';
+const pickable = el => !el.closest('#edLayer, #devBtns, ' + AUTO_PLACED) && !(el instanceof SVGElement && el.tagName.toLowerCase() !== 'svg');
 function pick(cx, cy, deep) {
   const k = sc(); let best = null, ba = Infinity;
   for (const el of stage.querySelectorAll('*')) {

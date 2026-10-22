@@ -5,31 +5,26 @@
 const STORY_INTRO = [
   { bg: 'bg_entrance', scene: 'hook', who: 'narrator', clip: 'narrator_1',
     text: 'Deep inside the Treasure Tunnel, an explorer is searching for hidden treasure.' },
-  { bg: 'bg_tunnel', scene: 'lostMap', who: 'narrator', clip: 'narrator_2',
-    text: 'But the map to the treasure had broken into pieces and scattered across the tunnel!' },
-  { bg: 'bg_tunnel', scene: 'worried', who: 'narrator', clip: 'narrator_3',
-    text: 'Uh-oh! I only have one piece of the map. How will I find the treasure now?' },
   { bg: 'bg_tunnel', scene: 'wizardAppears', who: 'wizard',
-    text: 'Hahaha! Solve the puzzles to find the missing pieces of the treasure map.' },
-  { bg: 'bg_tunnel', scene: 'ready', who: 'explorer',
-    text: 'I’m ready! Let’s solve the puzzles.' },
+    text: 'Hahaha! You just have one piece of map.' },
   { bg: 'bg_tunnel', scene: 'readyWizard', who: 'wizard',
-    text: 'And the treasure keys could be on the left or the right. Let’s find them!' },
+    text: 'Solve the mysteries to reach the treasure.' },
+  { bg: 'bg_tunnel', scene: 'ready', who: 'explorer',
+    text: 'Let’s solve the puzzles. I will uncover the map and find the hidden treasure.' },
 ];
 
 const STORY_END = [
   { bg: 'bg_final_path', scene: 'praise', who: 'wizard',
-    text: 'Hahaha! You solved every mystery and conquered every positive and negative path along the way!' },
+    text: 'Hahaha! You did it!' },
   { bg: 'bg_final_path', scene: 'title', who: 'wizard',
-    text: 'That makes you a true Treasure Tunnel Explorer!' },
+    text: 'You’re a real treasure master!' },
   { bg: 'bg_final_path', scene: 'goTreasure', who: 'wizard',
     text: 'Go ahead and collect your treasure!' },
-  { bg: 'bg_final_path', scene: 'run', who: 'explorer',
-    text: 'This must be it! The treasure is close!' },
+  { bg: 'bg_final_path', scene: 'run' }, // no line in the script: the explorer runs to the chest
   { bg: 'bg_treasure_chamber', scene: 'found', who: 'explorer',
     text: 'Whoa! I found it!' },
   { bg: 'bg_treasure_chamber', scene: 'open', who: 'explorer',
-    text: 'Best treasure hunt ever!' },
+    text: 'Whoa! Best treasure hunt ever. Yayy!' },
 ];
 
 const OOPS_KEY = 'Oops! No key here. Look where the explorer stopped.';
@@ -49,7 +44,7 @@ const LEVELS = [
     artMap: true, // unlock + between puzzles use the path illustration (dimmed, route lighting up) instead of the map
     // path reveal: assets/path_reveal_ch1.webp (1446×935); the explorer walks this route (art pixels)
     pathArt: { img: 'path_reveal_ch1', w: 1446, h: 935, route: [[53, 359], [173, 353], [268, 313], [303, 343], [338, 376], [418, 393], [463, 443], [508, 508], [558, 527], [598, 559], [678, 566], [758, 579], [798, 510], [878, 519], [958, 505], [1038, 528], [1078, 464], [1098, 448], [1163, 473], [1213, 533], [1298, 561], [1403, 568]] },
-    badge: { name: 'Path Finder', color: '#F29A2E', dark: '#9A5410', icon: 'both' },
+    // no badge: Chamber 1 goes straight on to Chamber 2
     rule: [['+', 'Add', 'right'], ['−', 'Subtract', 'left']],
     teach: [
       { type: 'zero', who: 'wizard', text: 'Look closely!' },
@@ -87,7 +82,7 @@ const LEVELS = [
     mapIntro: [
       { who: 'explorer', text: 'I got it! Now, I have the map to reach the treasure.' },
       { who: 'wizard', text: 'Hahaha! You found just one piece of map! But you need 2 more map pieces to reach the treasure.' },
-      { who: 'wizard', text: 'Solve the map puzzle to reveal the further path.' },
+      { who: 'wizard', text: 'Solve the map puzzle to reveal the further path.', vo: true },
     ],
     mysteries: [
       { start: 7, delta: 6, eq: '(+7) + 6 = ?', tutorial: true, coach: true, // guided tour of the keypad
@@ -126,7 +121,7 @@ const LEVELS = [
     voOnly: true, // each key's own line is the instruction (no extra move prompt)
     helpRules: true, // the ? button opens a dropdown of the direction rules
     keyBox: true, // the hidden key box above the right stone, as in Chamber 1
-    badge: { name: 'Shadow Master', color: '#8B5CF6', dark: '#4C1D95', icon: 'left' },
+    // no badge: the chamber goes straight on
     rule: [['+(−)', 'Add a negative', 'left']],
     teach: [
       { type: 'confused', who: 'explorer', text: 'Oh! These puzzles look different!', ost: 'Oh! These puzzles look different!' },
@@ -166,7 +161,7 @@ const LEVELS = [
         idle: 'The last key is waiting! Check the sign and follow the explorer.' },
     ],
     mapIntro: [
-      { who: 'wizard', text: 'Solve these map puzzles to reveal the next path.' },
+      { who: 'wizard', text: 'Solve these map puzzles to reveal the next path.', vo: true },
     ],
     mysteries: [
       { start: 7, delta: -5, eq: '(+7) + (−5) = ?',
@@ -205,7 +200,7 @@ const LEVELS = [
     voOnly: true, // each key's own line is the instruction (no extra move prompt)
     helpRules: true, // the ? button opens a dropdown of the direction rules
     keyBox: true, // the hidden key box above the right stone, as in Chamber 1
-    badge: { name: 'Flip Master', color: '#14B8A6', dark: '#0F5F57', icon: 'right' },
+    // no badge: the chamber goes straight on
     rule: [['−(−)', 'Subtract a negative', 'right']],
     teach: [
       { type: 'confused', who: 'explorer', text: 'Oh! These puzzles look different again.', ost: 'The path has changed!' },
@@ -245,7 +240,7 @@ const LEVELS = [
         idle: 'The last key is waiting! Check the signs and follow the explorer.' },
     ],
     mapIntro: [
-      { who: 'wizard', text: 'Solve these map puzzles to reveal the path to the treasure.' },
+      { who: 'wizard', text: 'Solve these map puzzles to reveal the path to the treasure.', vo: true },
     ],
     mysteries: [
       { start: 5, delta: 7, eq: '(+5) − (−7) = ?',

@@ -115,6 +115,13 @@ const Sound = (() => {
   }
   function duck(on_) { ducked = on_; musicLevel(on_ ? 0.15 : 0.8); }
 
+  // switching tabs or minimising pauses every sound (music, ambience, effects); coming back resumes it
+  document.addEventListener('visibilitychange', () => {
+    if (!ctx) return;
+    if (document.hidden) ctx.suspend();
+    else if (on) ctx.resume();
+  });
+
   return {
     init, music: startMusic, duck,
     get running() { return !!ctx && ctx.state === 'running'; },
@@ -148,7 +155,7 @@ const Voice = (() => {
       .replace(/(^|[\s(])[−-](\d+)/g, '$1negative $2')
       .replace(/\s[−-]\s/g, ' minus ').replace(/\s\+\s/g, ' plus ')
       .replace(/=\s*\?/g, 'equals what?').replace(/→/g, ', ').replace(/[()…]/g, ' ')
-      .replace(/Hahaha/g, 'Ha ha ha').replace(/Wohoo/g, 'Woo hoo');
+      .replace(/Hahaha/g, 'Ha ha ha').replace(/Wohoo/g, 'Woo hoo').replace(/Yayy/g, 'Yay');
   }
 
   // Recorded ElevenLabs clips (assets/audio/<clip>.mp3). Falls back to browser speech if a file is missing.
@@ -208,6 +215,12 @@ const Voice = (() => {
       synth.speak(u);
     });
   }
+
+  // a hidden tab pauses the voice too (a recorded clip or the browser's speech), and resumes it on return
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (clipEl) clipEl.pause(); if (synth && synth.speaking) synth.pause(); }
+    else { if (clipEl) clipEl.play().catch(() => {}); if (synth && synth.paused) synth.resume(); }
+  });
 
   return {
     say, stop() { stopClip(); clearCues(); if (synth) synth.cancel(); speaking = 0; Sound.duck(false); },

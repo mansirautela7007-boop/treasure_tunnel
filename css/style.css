@@ -672,8 +672,8 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
   filter: drop-shadow(0 14px 24px rgba(0,0,0,.55)); }
 #stage.path-art #pathArt { opacity: 1; visibility: visible; transform: none; transition: opacity .45s, transform .55s cubic-bezier(.2,1.3,.4,1); }
 #pathArt .pa-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-#pathArt .pa-glow { fill: none; stroke: #ffd54a; stroke-width: 20; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 34 26; opacity: 0; transition: opacity .4s;
-  filter: drop-shadow(0 0 10px #ffb300) drop-shadow(0 0 4px #fff3b0); }
+#pathArt .pa-glow { fill: none; stroke: #fff; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 18 26; opacity: 0; transition: opacity .4s;
+  filter: drop-shadow(0 0 6px #ff7fe0); } /* white dashes marching along the pink route */
 #pathArt.glow .pa-glow { opacity: .9; animation: paMarch 1s linear infinite, paPulse 1.6s ease-in-out infinite; }
 @keyframes paMarch { to { stroke-dashoffset: -60; } }
 @keyframes paPulse { 50% { opacity: .55; } }
@@ -701,7 +701,6 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
   padding: 30px 72px 32px; white-space: normal; font-size: 30px; line-height: 1.28; scale: none; margin-left: 0; top: 14px; }
 
 /* Chambers 1–3 intro and keys: lines are voice only, so no speech box (tap anywhere or Enter continues) */
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern:not(.map-ui) #bubble { visibility: hidden; }
 
 /* Chamber 1: rules dropdown under the ? button (placed by toggleRules) */
 #rulesDrop { position: absolute; z-index: 5; width: 240px; box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; gap: 5px;
@@ -724,8 +723,9 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #pathArt { background: none !important; }
 #pathArt .pa-img { position: absolute; inset: 0; background: center / 100% 100% no-repeat; transition: filter .9s, opacity .9s; }
 #pathArt.faint .pa-img { opacity: .6; filter: blur(5px) saturate(.6); } /* soft and see-through: the route is still hidden */
-#pathArt .pa-lit { fill: none; stroke: #ffd54a; stroke-width: 18; stroke-linecap: round; stroke-linejoin: round;
-  filter: drop-shadow(0 0 10px #ffb300) drop-shadow(0 0 4px #fff3b0); }
+/* the route: magic pink, so it stands out from the sandy paths, water and crystals on every map */
+#pathArt .pa-lit { fill: none; stroke: #ff3fcf; stroke-width: 18; stroke-linecap: round; stroke-linejoin: round;
+  filter: drop-shadow(0 0 10px #ff2fb8) drop-shadow(0 0 4px #ffd6f4); }
 #pathArt .pa-lit.flash { animation: paLitIn 1s ease-out; }
 @keyframes paLitIn { from { opacity: 0; stroke-width: 34; } }
 /* while a puzzle's scroll is up, the route art steps aside */
@@ -861,12 +861,6 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 @keyframes cvPulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(255,190,50,.5)); } 50% { transform: scale(1.055); filter: drop-shadow(0 0 22px rgba(255,200,60,.95)); } }
 @media (prefers-reduced-motion: reduce) { #title.cover *, #title.cover *::before, #title.cover *::after { animation: none !important; } .cv-motes { display: none; } }
 
-/* cover: shown only when the browser blocks music until the first tap */
-#title.cover .cv-sound { right: 26px; top: 22px; display: none; align-items: center; gap: 8px; padding: 8px 16px; border: 2px solid rgba(255,214,120,.8); border-radius: 999px;
-  background: rgba(20,12,4,.55); color: #ffe7a8; font: 600 18px 'Baloo 2', sans-serif; cursor: pointer; animation: cvHint 1.6s ease-in-out infinite; }
-#title.cover .cv-sound.on { display: flex; }
-#title.cover .cv-sound span { font-size: 22px; }
-@keyframes cvHint { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,210,100,.5); } 50% { box-shadow: 0 0 0 8px rgba(255,210,100,0); } }
 /* QA panel: music volume */
 .qa-vol { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; font-weight: 700; }
 .qa-vol input { flex: 1; min-width: 0; width: auto; accent-color: var(--gold); }
@@ -881,24 +875,133 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #btnMusic:active { transform: translateY(3px); box-shadow: 0 1px 0 #1a0e05, 0 3px 8px rgba(0,0,0,.45); }
 #btnMusic.muted { color: #c9b9a4; border-color: #9b8a73; filter: saturate(.4); }
 
-/* guided tutorial: a gold spotlight ring dims the rest of the screen; a caption card carries the line */
+/* guided tutorial: a bright, bouncy spotlight with twinkling stars, a tapping hand and the wizard's caption bubble */
 #coach { position: absolute; inset: 0; z-index: 66; display: none; pointer-events: none; }
 #coach.on { display: block; }
 #coach .co-block { position: absolute; inset: 0; pointer-events: auto; }
-#coach .co-ring { position: absolute; border: 4px solid #ffd54a; border-radius: 18px; pointer-events: none;
-  box-shadow: 0 0 0 9999px rgba(8,6,20,.62), 0 0 22px 4px rgba(255,213,74,.8), inset 0 0 14px rgba(255,213,74,.6);
-  transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease; animation: coRing 1.4s ease-in-out infinite; }
-#coach .co-hand { position: absolute; display: none; font-size: 54px; line-height: 1; transform: translate(-30%, 0); pointer-events: none;
-  filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); animation: coTap 1s ease-in-out infinite; }
-#coach.tap .co-hand { display: block; }
-#coach .co-card { position: absolute; width: 380px; box-sizing: border-box; padding: 16px 20px 14px; border-radius: 18px; pointer-events: none;
-  background: linear-gradient(#fff8e6, #f6e3b4); border: 3px solid #c98a2b; box-shadow: 0 8px 22px rgba(0,0,0,.45);
-  color: #3a2410; font: 700 21px/1.3 'Baloo 2', sans-serif; text-align: center; }
-#coach .co-card p { margin: 0; }
-#coach .co-next { pointer-events: auto; margin-top: 10px; padding: 6px 22px; border: 0; border-radius: 14px; cursor: pointer;
-  background: linear-gradient(#ffe27a, #f4b52c); box-shadow: 0 3px 0 #a8661b; color: #3a2200; font: 22px 'Lilita One', sans-serif; }
-#coach .co-next:active { transform: translateY(2px); box-shadow: 0 1px 0 #a8661b; }
-#coach .co-next[hidden] { display: none; }
-#coach .co-card.pop { animation: enterPop .4s cubic-bezier(.2,1.5,.4,1) both; }
-@keyframes coRing { 50% { box-shadow: 0 0 0 9999px rgba(8,6,20,.62), 0 0 34px 10px rgba(255,213,74,.95), inset 0 0 18px rgba(255,213,74,.8); } }
-@keyframes coTap { 0%, 100% { transform: translate(-30%, 8px); } 50% { transform: translate(-30%, -6px) scale(.94); } }
+#coach .co-ring { position: absolute; border: 5px solid #ffe066; border-radius: 26px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(20,8,48,.5), 0 0 26px 8px rgba(255,214,90,.85), inset 0 0 16px rgba(255,236,150,.7);
+  transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease; animation: coRing 1.2s ease-in-out infinite; }
+#coach .co-ring.pop { animation: coRingIn .45s cubic-bezier(.2,1.6,.4,1), coRing 1.2s .45s ease-in-out infinite; }
+#coach .co-star { position: absolute; font-style: normal; font-size: 26px; color: #fff3a8; text-shadow: 0 0 8px #ffd54a, 0 0 16px #ffb300; animation: coTwinkle 1.3s ease-in-out infinite; }
+#coach .co-star.s1 { left: -18px; top: -22px; }
+#coach .co-star.s2 { right: -16px; top: -14px; font-size: 20px; animation-delay: -.45s; }
+#coach .co-star.s3 { right: -20px; bottom: -18px; font-size: 22px; animation-delay: -.9s; }
+#coach .co-hand { position: absolute; display: block; font-size: 64px; line-height: 1; pointer-events: none;
+  filter: drop-shadow(0 5px 5px rgba(0,0,0,.5)); animation: coTap 1s ease-in-out infinite; }
+#coach .co-ripple { position: absolute; left: 30%; top: 2px; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+  border: 4px solid rgba(255,255,255,.9); animation: coRipple 1s ease-out infinite; }
+#coach .co-card { position: absolute; width: 400px; min-height: 96px; box-sizing: border-box; display: flex; align-items: center; gap: 14px;
+  padding: 12px 22px 12px 12px; border-radius: 28px; pointer-events: none;
+  background: linear-gradient(160deg, #8b5cf6, #6d28d9 60%, #5b21b6); border: 5px solid #ffd54a;
+  box-shadow: 0 8px 0 #3b1478, 0 14px 26px rgba(0,0,0,.45); }
+#coach .co-av { flex: none; width: 68px; height: 68px; border-radius: 50%; border: 4px solid #fff3c4; background: #fff; object-fit: cover; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+#coach .co-card p { margin: 0; color: #fff; font: 30px/1.15 'Lilita One', sans-serif; letter-spacing: .01em; text-shadow: 0 3px 0 #3b1478; }
+#coach .co-card.pop { animation: coBounce .55s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes coRing { 50% { transform: scale(1.04); box-shadow: 0 0 0 9999px rgba(20,8,48,.5), 0 0 40px 14px rgba(255,214,90,1), inset 0 0 20px rgba(255,236,150,.9); } }
+@keyframes coRingIn { from { transform: scale(1.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes coTwinkle { 0%, 100% { transform: scale(.6) rotate(0); opacity: .5; } 50% { transform: scale(1.25) rotate(25deg); opacity: 1; } }
+@keyframes coTap { 0%, 100% { transform: translate(-30%, 10px); } 50% { transform: translate(-30%, -8px) scale(.92); } }
+@keyframes coRipple { 0%, 45% { transform: scale(.3); opacity: 0; } 55% { opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+@keyframes coBounce { 0% { transform: scale(.3) rotate(-6deg); opacity: 0; } 60% { transform: scale(1.08) rotate(2deg); opacity: 1; } 100% { transform: none; } }
+
+/* ===================== character dialogue box (no voice): portrait, name tag, typed-out text, bouncing Next ===================== */
+#stage #bubble.dlg { left: 50%; right: auto; top: auto; bottom: 16px; width: 900px; margin-left: -450px; min-height: 128px; box-sizing: border-box;
+  display: block; padding: 26px 190px 22px 150px; border-radius: 30px; visibility: visible;
+  background: linear-gradient(180deg, #fffaf0 0%, #fbe9c2 100%); border: 6px solid var(--dlg, #f0a13a);
+  box-shadow: 0 8px 0 var(--dlg-dark, #9a5410), 0 18px 34px rgba(0,0,0,.5), inset 0 3px 0 rgba(255,255,255,.8); }
+#stage #bubble.dlg.wizard { --dlg: #8b5cf6; --dlg-dark: #4c1d95; --tag: linear-gradient(#a78bfa, #7c3aed); }
+#stage #bubble.dlg.explorer { --dlg: #f59e0b; --dlg-dark: #9a5410; --tag: linear-gradient(#fbbf24, #ea7a12); }
+#stage #bubble.dlg.pop { animation: dlgIn .45s cubic-bezier(.2,1.5,.4,1); }
+/* portrait: a big round frame that pops out over the top-left corner */
+#stage #bubble.dlg .av { position: absolute; left: 14px; top: -46px; width: 120px; height: 120px; margin: 0; border: 6px solid var(--dlg); background: #fff;
+  box-shadow: 0 6px 0 var(--dlg-dark), 0 10px 18px rgba(0,0,0,.35); animation: dlgAv 2.6s ease-in-out infinite; }
+#stage #bubble.dlg.pop .av { animation: dlgAvIn .55s cubic-bezier(.2,1.6,.4,1), dlgAv 2.6s .55s ease-in-out infinite; }
+/* name tag ribbon */
+#stage #bubble.dlg .bubble-body { position: static; }
+#stage #bubble.dlg .who { display: block; position: absolute; left: 140px; top: -22px; padding: 4px 20px 6px; border-radius: 14px; transform: rotate(-3deg);
+  background: var(--tag); color: #fff; font: 24px/1 'Lilita One', sans-serif; letter-spacing: .03em; text-shadow: 0 2px 0 var(--dlg-dark);
+  border: 3px solid #fff; box-shadow: 0 4px 0 var(--dlg-dark); }
+#stage #bubble.dlg .txt { font: 30px/1.25 'Lilita One', sans-serif; color: #3a2410; letter-spacing: .01em; }
+#stage #bubble.dlg .txt .ghost { visibility: hidden; }
+#stage #bubble.dlg .replay { display: none; }
+/* Next: a gold button on the right that bounces when it's time to move on */
+#stage #bubble.dlg .next { position: absolute; right: 22px; top: 50%; bottom: auto; margin-top: -30px; height: 60px; padding: 0 26px; border-radius: 20px;
+  font: 28px 'Lilita One', sans-serif; color: #3a2200; background: linear-gradient(#ffe27a, #f4b52c); box-shadow: 0 5px 0 #a8661b, 0 8px 14px rgba(0,0,0,.3); border: 3px solid #fff3c4; }
+#stage #bubble.dlg.has-next .next { display: block; animation: dlgNext 1.1s ease-in-out infinite; }
+#stage #bubble.dlg .next:active { transform: translateY(4px); box-shadow: 0 1px 0 #a8661b; animation: none; }
+#stage.has-dev #bubble.dlg { margin-left: -430px; } /* clear of the music / dev buttons on the left */
+@keyframes dlgIn { 0% { transform: translateY(60px) scale(.85); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes dlgAvIn { 0% { transform: scale(0) rotate(-25deg); } 100% { transform: none; } }
+@keyframes dlgAv { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+@keyframes dlgNext { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(6px) scale(1.05); } }
+#stage #bubble.dlg.compact { width: 1060px; margin-left: -530px; min-height: 0; bottom: 10px; padding: 16px 176px 12px 132px; }
+#stage #bubble.dlg.compact .txt { font-size: 25px; line-height: 1.2; }
+#stage #bubble.dlg.compact .av { width: 96px; height: 96px; top: -30px; }
+#stage #bubble.dlg.compact .who { left: 122px; top: -18px; font-size: 20px; }
+#stage #bubble.dlg.compact .next { height: 52px; margin-top: -26px; font-size: 24px; }
+#stage.has-dev #bubble.dlg.compact { margin-left: -480px; width: 1010px; }
+
+/* ===================== comic speech bubble (character lines): white, thick ink outline, offset shadow, a curved tail
+   pointing at the speaker. Wizard: violet ink, a lilac tint and twinkling stars. Explorer: brown ink, warm cream and a gold tag. */
+#stage #bubble.comic { position: absolute; display: block; box-sizing: border-box; margin: 0; bottom: auto; right: auto; min-height: 0;
+  padding: 26px 30px 22px; border-radius: 46px 40px 44px 38px / 40px 46px 38px 44px; visibility: visible;
+  background: var(--fill); border: 5px solid var(--ink-c); color: var(--ink-c); box-shadow: 7px 8px 0 var(--ink-c);
+  transform-origin: var(--origin, 50% 100%); transition: opacity .25s; }
+#stage #bubble.comic.wizard { --fill: radial-gradient(circle at 20% 15%, #ffffff, #f6efff 70%); --tail-fill: #f8f2ff; --ink-c: #3b1475; --tag: linear-gradient(#a78bfa, #7c3aed); }
+#stage #bubble.comic.explorer { --fill: radial-gradient(circle at 20% 15%, #ffffff, #fff4e0 70%); --tail-fill: #fff6e6; --ink-c: #5a2a08; --tag: linear-gradient(#fcc54a, #ea7a12); }
+#stage #bubble.comic.pop { animation: comicPop .5s cubic-bezier(.2,1.7,.4,1); }
+#stage #bubble.comic.tail-left { --origin: 0% 40%; } #stage #bubble.comic.tail-right { --origin: 100% 40%; }
+#stage #bubble.comic .bubble-body { position: static; }
+#stage #bubble.comic .txt { font: 27px/1.22 'Lilita One', sans-serif; letter-spacing: .01em; color: var(--ink-c); }
+#stage #bubble.comic .txt .ghost { visibility: hidden; }
+#stage #bubble.comic .who { display: block; position: absolute; left: 30px; top: -20px; padding: 3px 16px 5px; border-radius: 12px; transform: rotate(-4deg);
+  background: var(--tag); color: #fff; font: 20px/1 'Lilita One', sans-serif; letter-spacing: .03em; border: 3px solid var(--ink-c); text-shadow: 0 2px 0 var(--ink-c); }
+#stage #bubble.comic .replay, #stage #bubble.comic .next, #stage #bubble.comic .av { display: none; }
+/* tail: open at the top so it joins the bubble with no line across it */
+#stage #bubble.comic .tail { position: absolute; width: 56px; height: 62px; overflow: visible; pointer-events: none; }
+#stage #bubble.comic .tail .tf { fill: var(--tail-fill); }
+#stage #bubble.comic .tail .ts { fill: none; stroke: var(--ink-c); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+#stage #bubble.comic.tail-down .tail { top: auto; bottom: -55px; }
+#stage #bubble.comic.tail-left .tail { left: -57px !important; transform: rotate(90deg) scaleX(-1); }
+#stage #bubble.comic.tail-right .tail { right: -57px; left: auto !important; transform: rotate(-90deg); }
+#stage #bubble.comic.solo .tail { display: none; }
+/* wizard magic: little stars that twinkle on the bubble's edge */
+#stage #bubble.comic.wizard::before, #stage #bubble.comic.wizard::after { content: '✦'; position: absolute; color: #a855f7; text-shadow: 0 0 6px #e9d5ff; animation: coTwinkle 1.4s ease-in-out infinite; }
+#stage #bubble.comic.wizard::before { right: 18px; top: -18px; font-size: 26px; }
+#stage #bubble.comic.wizard::after { right: -14px; top: 22px; font-size: 18px; animation-delay: -.7s; }
+/* explorer: a little gold compass star on the corner */
+#stage #bubble.comic.explorer::after { content: '★'; position: absolute; right: 16px; top: -17px; font-size: 24px; color: #f59e0b; text-shadow: 0 2px 0 #5a2a08; animation: coTwinkle 1.8s ease-in-out infinite; }
+/* nobody on screen to point at: a wide bubble at the bottom with the speaker's portrait */
+#stage #bubble.comic.solo { left: 50%; top: auto; bottom: 22px; width: 860px; margin-left: -430px; padding-left: 136px; --origin: 50% 100%; }
+#stage #bubble.comic.solo .av { display: block; position: absolute; left: 18px; top: 50%; width: 96px; height: 96px; margin-top: -48px; border: 5px solid var(--ink-c); background: #fff; }
+#stage #bubble.comic.solo .who { left: 136px; }
+@keyframes comicPop { 0% { transform: scale(.2); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: none; } }
+/* the unlock scene: the characters stand in front of the map scroll; speech bubbles always sit on top */
+#stage.cast #world { opacity: 1 !important; z-index: 2; }
+#stage #bubble.comic { z-index: 4; }
+/* centring measured on screen against the art: the map-puzzle equation sat ~7px low on its sign, and the − glyph
+   sits low in the font, so it's lifted to the middle of the orange key */
+#stage.map-scroll #tablet > span { translate: 0 -1px !important; }
+#stage.map-scroll.has-ui_key_sign #tray .k.sign[data-k="-"] { padding-bottom: 11px; }
+
+/* tap hint on the route's start point: a tapping hand with a ripple */
+#pathArt .pa-hand { position: absolute; width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity .3s; z-index: 2; }
+#pathArt .pa-hand.on { opacity: 1; }
+#pathArt .pa-hand i { position: absolute; left: -32px; top: -32px; width: 64px; height: 64px; border-radius: 50%; border: 5px solid #fff;
+  box-shadow: 0 0 12px #ff3fcf; animation: coRipple 1s ease-out infinite; }
+#pathArt .pa-hand b { position: absolute; left: -20px; top: 4px; font-size: 92px; line-height: 1; font-weight: normal;
+  filter: drop-shadow(0 5px 5px rgba(0,0,0,.5)); animation: paTap 1s ease-in-out infinite; }
+@keyframes paTap { 0%, 100% { transform: translateY(12px); } 50% { transform: translateY(-4px) scale(.92); } }
+
+/* while the characters talk on a map screen, the map tucks up and shrinks so their speech bubbles never cover it
+   (scaled about the scroll's top centre, 643.5px 90px; the route art uses the same point) */
+#stage.cast #scroll { transform: translateY(-70px) scale(.72) !important; transform-origin: 503.5px 0; transition: transform .5s cubic-bezier(.3,1.2,.4,1), opacity .35s; }
+#stage.cast #pathArt { transform: translateY(-70px) scale(.72) !important; transform-origin: 380.5px -55px; transition: transform .5s cubic-bezier(.3,1.2,.4,1), opacity .45s; }
+#stage.path-art #scroll, #stage.unlock-scroll #scroll, #stage.path-art #pathArt { transition: transform .5s cubic-bezier(.3,1.2,.4,1), opacity .45s; }
+/* the map unrolls from the middle when it first appears */
+#scroll.unroll { animation: scrollUnroll .9s cubic-bezier(.3,1.1,.4,1) both; }
+#pathArt.unroll { animation: mapInkIn .6s .55s ease-out both; }
+@keyframes scrollUnroll { 0% { clip-path: inset(0 47% 0 47%); opacity: 0; } 15% { opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 1; } }
+@keyframes mapInkIn { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
+#stage.cast #slots { opacity: 0; transition: opacity .3s; } /* the tucked map sits where the key bar is, so the bar steps out while the characters talk */
