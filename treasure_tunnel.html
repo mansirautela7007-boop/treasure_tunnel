@@ -1015,6 +1015,19 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 @keyframes scrollUnroll { 0% { clip-path: inset(0 47% 0 47%); opacity: 0; } 15% { opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 1; } }
 @keyframes mapInkIn { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
 #stage.cast #slots { opacity: 0; transition: opacity .3s; } /* the tucked map sits where the key bar is, so the bar steps out while the characters talk */
+
+/* key questions where a stone can be tapped to walk there */
+#stage.tap-stones #nlWrap, #stage.tap-stones #nl { pointer-events: auto; }
+#stage.tap-stones #nl .stone { cursor: pointer; pointer-events: auto; }
+#stage.tap-stones #nl .stone:hover { filter: brightness(1.12) drop-shadow(0 0 10px rgba(255,224,120,.8)); }
+#stage.tap-stones #nl .stone.tapped { filter: brightness(1.25) drop-shadow(0 0 14px #ffe27a); }
+
+/* the stone the player jumped on correctly: green glow and a pulse, until the next question */
+.theme-cavern .stone.correct .lbl { background: linear-gradient(#e9ffd8, #7ee05a) !important; box-shadow: inset 0 0 0 3px #2f9e1f !important; color: #134d0b; }
+.stone.correct { filter: drop-shadow(0 0 14px #6dff5a) drop-shadow(0 0 4px #e9ffd8) !important; animation: stoneWin .9s ease-in-out 2; }
+@keyframes stoneWin { 50% { transform: scale(1.1); } }
+/* confetti and sparkles draw on top of the map scroll and its route */
+#fx { z-index: 6; }
 </style>
 </head>
 <body>
@@ -1219,12 +1232,12 @@ const LEVELS = [
         ost: 'When you have to add, you’ll move to the right. When you have to subtract, you’ll move to the left.' },
     ],
     keys: [
-      { start: 0, delta: 3, eq: '0 + 3 = ?', cele: 'KEY FOUND!', size: 'small', coach: true, // how to play: a guided tour of every control
+      { start: 0, delta: 3, eq: '0 + 3 = ?', cele: 'KEY FOUND!', size: 'small', coach: true, tapStones: true, // how to play: a guided tour of every control
         vo: 'You are at 0. You will find your key when you add 3 steps to 0.',
         found: 'Correct! You found it. The explorer reached +3. The key is right here.',
         wrong: [OOPS_KEY, 'Watch the explorer’s path again.', 'Look closely at where the explorer reaches.'],
         idle: 'Follow the explorer and see where he reaches.' },
-      { start: 7, delta: -4, eq: '(+7) − 4 = ?', cele: '+1 KEY', size: 'small',
+      { start: 7, delta: -4, eq: '(+7) − 4 = ?', cele: '+1 KEY', size: 'small', tapStones: true,
         vo: 'You will find your next key when you subtract 4 steps from 7.',
         found: 'Correct! You found it. The explorer reached +3. The key is right here.',
         wrong: [OOPS_KEY, 'Watch the explorer’s path again.', 'Check where the explorer reaches after moving back.'],
@@ -1511,6 +1524,13 @@ const Sound = (() => {
   const fx = {
     tap()     { tone(880, 0.06, { type: 'triangle', vol: 0.12 }); },
     pop()     { tone(520, 0.09, { vol: 0.16, slide: 900 }); },
+    // character "voices": short, bouncy syllables while their words type out (wizard low and wobbly, explorer high and quick)
+    talk(who) {
+      const w = who === 'wizard';
+      const base = w ? 170 + Math.random() * 70 : 380 + Math.random() * 140;
+      tone(base, w ? 0.09 : 0.06, { type: w ? 'sawtooth' : 'square', vol: w ? 0.035 : 0.03, slide: base * (Math.random() < .5 ? 1.25 : .82), attack: .01 });
+      tone(base * 2, w ? 0.07 : 0.05, { type: 'sine', vol: 0.04 });
+    },
     step()    { noise(0.09, { vol: 0.35, freq: 380 }); tone(110, 0.09, { vol: 0.18, slide: 70 }); },
     count(n)  { tone(600 + Math.min(n, 15) * 40, 0.08, { type: 'triangle', vol: 0.09 }); },
     jump()    { tone(280, 0.18, { type: 'square', vol: 0.06, slide: 620 }); },
@@ -1599,12 +1619,19 @@ const Sound = (() => {
 const Voice = (() => {
   let on = true, voice = null;
   const synth = window.speechSynthesis;
-  const VOICES = { wizard: { pitch: 0.75, rate: 0.92 }, explorer: { pitch: 1.35, rate: 1.02 }, narrator: { pitch: 1.0, rate: 0.95 } };
+  // each character gets their own voice: the wizard deep and slow, the explorer bright and quick
+  const VOICES = { wizard: { pitch: 0.55, rate: 0.88 }, explorer: { pitch: 1.45, rate: 1.06 }, narrator: { pitch: 1.0, rate: 0.95 } };
+  const byWho = {};
 
   function pick() {
     if (!synth) return;
-    const v = synth.getVoices();
-    voice = v.find(x => /en[-_]IN/i.test(x.lang)) || v.find(x => /en[-_]GB/i.test(x.lang)) || v.find(x => /^en/i.test(x.lang)) || null;
+    const v = synth.getVoices(), en = v.filter(x => /^en/i.test(x.lang));
+    const named = re => en.find(x => re.test(x.name));
+    voice = v.find(x => /en[-_]IN/i.test(x.lang)) || v.find(x => /en[-_]GB/i.test(x.lang)) || en[0] || null;
+    // a male storyteller voice for the wizard, a young-sounding voice for the explorer (when the device has them)
+    byWho.wizard = named(/Daniel|Rishi|Fred|Ralph|Google UK English Male|Male|David|George|Arthur/i) || voice;
+    byWho.explorer = named(/Samantha|Karen|Moira|Tessa|Google US English|Female|Zira|Aria|Jenny/i) || voice;
+    byWho.narrator = voice;
   }
   if (synth) { pick(); synth.onvoiceschanged = pick; }
 
@@ -1667,7 +1694,7 @@ const Voice = (() => {
         };
       }
       const p = VOICES[who] || VOICES.narrator;
-      if (voice) u.voice = voice;
+      const vv = byWho[who] || voice; if (vv) u.voice = vv;
       u.pitch = p.pitch; u.rate = p.rate; u.volume = 1;
       let done = false; const fin = () => { if (!done) { done = true; res(); } };
       u.onend = fin; u.onerror = fin;
@@ -1953,6 +1980,7 @@ const MAP_TUCKED = { x: 281, y: 20, w: 725, h: 432 };
 function showTalk(who, text, cues = null) {
   const b = $('#bubble'), txt = b.querySelector('.txt'), r = RUN;
   Voice.stop(); if (typing) { clearInterval(typing.t); typing.done(); }
+  const spoken = Voice.say(text, who); // the character speaks the line in their own voice
   if (!b.querySelector('.tail')) b.insertAdjacentHTML('beforeend', TAIL_SVG);
   b.className = `on comic ${who}`;
   b.querySelector('.av').src = who === 'wizard' ? ASSET('wizard_avatar') : who === 'explorer' ? ASSET('explorer_avatar') : NARRATOR_AV;
@@ -1969,7 +1997,7 @@ function showTalk(who, text, cues = null) {
       i = Math.min(plain.length, i + 1);
       txt.innerHTML = `<span>${plain.slice(0, i)}</span><span class="ghost">${plain.slice(i)}</span>`; // the rest keeps its space
       pending.slice().forEach(c => { if (i >= c.at) { pending.splice(pending.indexOf(c), 1); c.fn(); } });
-      if (i >= plain.length) { clearInterval(typing.t); txt.innerHTML = text; typing = null; setTimeout(res, hold); }
+      if (i >= plain.length) { clearInterval(typing.t); txt.innerHTML = text; typing = null; Promise.all([spoken, new Promise(r => setTimeout(r, Voice.on ? 900 : hold))]) /* with voice off, the reading time */.then(() => setTimeout(res, 500)); } // moves on once the line has been said
     };
     typing = { t: setInterval(step, RM ? 1 : 28), done: res };
     step();
@@ -2195,7 +2223,7 @@ const NL = {
   showLabel(v) { this.stone(v)?.classList.add('show'); },
   resetMarks() {
     document.querySelectorAll('#nl .stone').forEach(s => {
-      s.classList.remove('trail', 'land', 'miss', 'pulse', 'start');
+      s.classList.remove('trail', 'land', 'miss', 'pulse', 'start', 'correct');
       if (!s.classList.contains('mark')) s.classList.remove('show');
     });
     $('#keyprize').classList.remove('on', 'boxpop'); $('#keyBox')?.remove();
@@ -2732,7 +2760,8 @@ async function wrongKey(it, v, tries, ans) {
 async function keySuccess(L, i, it, ans, firstTry) {
   Mover.hide(); NL.hideArrow(); $('#counter').classList.remove('on');
   Tablet.solve(ans);
-  const s = NL.stone(ans); s.classList.remove('pulse'); s.classList.add('land', 'show');
+  const s = NL.stone(ans); s.classList.remove('pulse'); s.classList.add('land', 'show', 'correct'); // the answer stone lights up green and stays lit
+  { const p = stagePos(s); FX.burst(p.x, p.y, 16, 'star', 6); }
   NL.pose('explorer_jump_key'); NL.jump();
   const k = $('#keyprize');
   if (LEVELS[L].keyBox) {

@@ -51,6 +51,13 @@ const Sound = (() => {
   const fx = {
     tap()     { tone(880, 0.06, { type: 'triangle', vol: 0.12 }); },
     pop()     { tone(520, 0.09, { vol: 0.16, slide: 900 }); },
+    // character "voices": short, bouncy syllables while their words type out (wizard low and wobbly, explorer high and quick)
+    talk(who) {
+      const w = who === 'wizard';
+      const base = w ? 170 + Math.random() * 70 : 380 + Math.random() * 140;
+      tone(base, w ? 0.09 : 0.06, { type: w ? 'sawtooth' : 'square', vol: w ? 0.035 : 0.03, slide: base * (Math.random() < .5 ? 1.25 : .82), attack: .01 });
+      tone(base * 2, w ? 0.07 : 0.05, { type: 'sine', vol: 0.04 });
+    },
     step()    { noise(0.09, { vol: 0.35, freq: 380 }); tone(110, 0.09, { vol: 0.18, slide: 70 }); },
     count(n)  { tone(600 + Math.min(n, 15) * 40, 0.08, { type: 'triangle', vol: 0.09 }); },
     jump()    { tone(280, 0.18, { type: 'square', vol: 0.06, slide: 620 }); },
@@ -139,12 +146,19 @@ const Sound = (() => {
 const Voice = (() => {
   let on = true, voice = null;
   const synth = window.speechSynthesis;
-  const VOICES = { wizard: { pitch: 0.75, rate: 0.92 }, explorer: { pitch: 1.35, rate: 1.02 }, narrator: { pitch: 1.0, rate: 0.95 } };
+  // each character gets their own voice: the wizard deep and slow, the explorer bright and quick
+  const VOICES = { wizard: { pitch: 0.55, rate: 0.88 }, explorer: { pitch: 1.45, rate: 1.06 }, narrator: { pitch: 1.0, rate: 0.95 } };
+  const byWho = {};
 
   function pick() {
     if (!synth) return;
-    const v = synth.getVoices();
-    voice = v.find(x => /en[-_]IN/i.test(x.lang)) || v.find(x => /en[-_]GB/i.test(x.lang)) || v.find(x => /^en/i.test(x.lang)) || null;
+    const v = synth.getVoices(), en = v.filter(x => /^en/i.test(x.lang));
+    const named = re => en.find(x => re.test(x.name));
+    voice = v.find(x => /en[-_]IN/i.test(x.lang)) || v.find(x => /en[-_]GB/i.test(x.lang)) || en[0] || null;
+    // a male storyteller voice for the wizard, a young-sounding voice for the explorer (when the device has them)
+    byWho.wizard = named(/Daniel|Rishi|Fred|Ralph|Google UK English Male|Male|David|George|Arthur/i) || voice;
+    byWho.explorer = named(/Samantha|Karen|Moira|Tessa|Google US English|Female|Zira|Aria|Jenny/i) || voice;
+    byWho.narrator = voice;
   }
   if (synth) { pick(); synth.onvoiceschanged = pick; }
 
@@ -207,7 +221,7 @@ const Voice = (() => {
         };
       }
       const p = VOICES[who] || VOICES.narrator;
-      if (voice) u.voice = voice;
+      const vv = byWho[who] || voice; if (vv) u.voice = vv;
       u.pitch = p.pitch; u.rate = p.rate; u.volume = 1;
       let done = false; const fin = () => { if (!done) { done = true; res(); } };
       u.onend = fin; u.onerror = fin;

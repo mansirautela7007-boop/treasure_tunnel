@@ -260,6 +260,7 @@ const MAP_TUCKED = { x: 281, y: 20, w: 725, h: 432 };
 function showTalk(who, text, cues = null) {
   const b = $('#bubble'), txt = b.querySelector('.txt'), r = RUN;
   Voice.stop(); if (typing) { clearInterval(typing.t); typing.done(); }
+  const spoken = Voice.say(text, who); // the character speaks the line in their own voice
   if (!b.querySelector('.tail')) b.insertAdjacentHTML('beforeend', TAIL_SVG);
   b.className = `on comic ${who}`;
   b.querySelector('.av').src = who === 'wizard' ? ASSET('wizard_avatar') : who === 'explorer' ? ASSET('explorer_avatar') : NARRATOR_AV;
@@ -276,7 +277,7 @@ function showTalk(who, text, cues = null) {
       i = Math.min(plain.length, i + 1);
       txt.innerHTML = `<span>${plain.slice(0, i)}</span><span class="ghost">${plain.slice(i)}</span>`; // the rest keeps its space
       pending.slice().forEach(c => { if (i >= c.at) { pending.splice(pending.indexOf(c), 1); c.fn(); } });
-      if (i >= plain.length) { clearInterval(typing.t); txt.innerHTML = text; typing = null; setTimeout(res, hold); }
+      if (i >= plain.length) { clearInterval(typing.t); txt.innerHTML = text; typing = null; Promise.all([spoken, new Promise(r => setTimeout(r, Voice.on ? 900 : hold))]) /* with voice off, the reading time */.then(() => setTimeout(res, 500)); } // moves on once the line has been said
     };
     typing = { t: setInterval(step, RM ? 1 : 28), done: res };
     step();
@@ -502,7 +503,7 @@ const NL = {
   showLabel(v) { this.stone(v)?.classList.add('show'); },
   resetMarks() {
     document.querySelectorAll('#nl .stone').forEach(s => {
-      s.classList.remove('trail', 'land', 'miss', 'pulse', 'start');
+      s.classList.remove('trail', 'land', 'miss', 'pulse', 'start', 'correct');
       if (!s.classList.contains('mark')) s.classList.remove('show');
     });
     $('#keyprize').classList.remove('on', 'boxpop'); $('#keyBox')?.remove();
@@ -1039,7 +1040,8 @@ async function wrongKey(it, v, tries, ans) {
 async function keySuccess(L, i, it, ans, firstTry) {
   Mover.hide(); NL.hideArrow(); $('#counter').classList.remove('on');
   Tablet.solve(ans);
-  const s = NL.stone(ans); s.classList.remove('pulse'); s.classList.add('land', 'show');
+  const s = NL.stone(ans); s.classList.remove('pulse'); s.classList.add('land', 'show', 'correct'); // the answer stone lights up green and stays lit
+  { const p = stagePos(s); FX.burst(p.x, p.y, 16, 'star', 6); }
   NL.pose('explorer_jump_key'); NL.jump();
   const k = $('#keyprize');
   if (LEVELS[L].keyBox) {

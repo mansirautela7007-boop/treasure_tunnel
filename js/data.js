@@ -53,12 +53,12 @@ const LEVELS = [
         ost: 'When you have to add, you’ll move to the right. When you have to subtract, you’ll move to the left.' },
     ],
     keys: [
-      { start: 0, delta: 3, eq: '0 + 3 = ?', cele: 'KEY FOUND!', size: 'small', coach: true, // how to play: a guided tour of every control
+      { start: 0, delta: 3, eq: '0 + 3 = ?', cele: 'KEY FOUND!', size: 'small', coach: true, tapStones: true, // how to play: a guided tour of every control
         vo: 'You are at 0. You will find your key when you add 3 steps to 0.',
         found: 'Correct! You found it. The explorer reached +3. The key is right here.',
         wrong: [OOPS_KEY, 'Watch the explorer’s path again.', 'Look closely at where the explorer reaches.'],
         idle: 'Follow the explorer and see where he reaches.' },
-      { start: 7, delta: -4, eq: '(+7) − 4 = ?', cele: '+1 KEY', size: 'small',
+      { start: 7, delta: -4, eq: '(+7) − 4 = ?', cele: '+1 KEY', size: 'small', tapStones: true,
         vo: 'You will find your next key when you subtract 4 steps from 7.',
         found: 'Correct! You found it. The explorer reached +3. The key is right here.',
         wrong: [OOPS_KEY, 'Watch the explorer’s path again.', 'Check where the explorer reaches after moving back.'],

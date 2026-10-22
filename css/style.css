@@ -1005,3 +1005,16 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 @keyframes scrollUnroll { 0% { clip-path: inset(0 47% 0 47%); opacity: 0; } 15% { opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 1; } }
 @keyframes mapInkIn { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
 #stage.cast #slots { opacity: 0; transition: opacity .3s; } /* the tucked map sits where the key bar is, so the bar steps out while the characters talk */
+
+/* key questions where a stone can be tapped to walk there */
+#stage.tap-stones #nlWrap, #stage.tap-stones #nl { pointer-events: auto; }
+#stage.tap-stones #nl .stone { cursor: pointer; pointer-events: auto; }
+#stage.tap-stones #nl .stone:hover { filter: brightness(1.12) drop-shadow(0 0 10px rgba(255,224,120,.8)); }
+#stage.tap-stones #nl .stone.tapped { filter: brightness(1.25) drop-shadow(0 0 14px #ffe27a); }
+
+/* the stone the player jumped on correctly: green glow and a pulse, until the next question */
+.theme-cavern .stone.correct .lbl { background: linear-gradient(#e9ffd8, #7ee05a) !important; box-shadow: inset 0 0 0 3px #2f9e1f !important; color: #134d0b; }
+.stone.correct { filter: drop-shadow(0 0 14px #6dff5a) drop-shadow(0 0 4px #e9ffd8) !important; animation: stoneWin .9s ease-in-out 2; }
+@keyframes stoneWin { 50% { transform: scale(1.1); } }
+/* confetti and sparkles draw on top of the map scroll and its route */
+#fx { z-index: 6; }
