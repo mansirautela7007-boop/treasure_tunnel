@@ -174,7 +174,7 @@ const Voice = (() => {
 
   // Recorded ElevenLabs clips (assets/audio/<clip>.mp3). Falls back to browser speech if a file is missing.
   let clipEl = null, cueTimers = [];
-  const CLIP = n => (window.AUDIO && window.AUDIO[n]) || `assets/audio/${n}.mp3`;
+  const CLIP = n => (window.AUDIO && window.AUDIO[n]) || `assets/audio/${n}.${n.startsWith('vo_') ? 'm4a' : 'mp3'}`;
   function stopClip() { if (clipEl) { clipEl.onended = clipEl.onerror = clipEl.ontimeupdate = null; clipEl.pause(); clipEl = null; } }
   function clearCues() { cueTimers.forEach(clearTimeout); cueTimers = []; }
 
@@ -182,11 +182,14 @@ const Voice = (() => {
   // Speech reports words as it reaches them; without that (or with voice off) the moment is estimated
   // from where the word sits in the line; a recorded clip uses its playback position.
   function say(text, who = 'narrator', clip = null, cues = null) {
+    // a line with a recorded voice-over always uses it (see RECORDED_VO in data.js)
+    let clipEnd = null;
+    if (typeof RECORDED_VO !== 'undefined' && RECORDED_VO[text]) { const v = RECORDED_VO[text]; if (v.clip) { clip = v.clip; clipEnd = v.end; } else clip = v; }
     Sound.duck(true);
-    return sayLine(text, who, clip, cues).finally(() => { if (!speaking) Sound.duck(false); });
+    return sayLine(text, who, clip, cues, clipEnd).finally(() => { if (!speaking) Sound.duck(false); });
   }
   let speaking = 0;
-  function sayLine(text, who, clip, cues) {
+  function sayLine(text, who, clip, cues, clipEnd = null) {
     const me = ++speaking;
     return new Promise(res0 => {
       const res = () => { if (speaking === me) speaking = 0; res0(); };
@@ -198,18 +201,23 @@ const Voice = (() => {
       const estimate = (ms, slack = 0) => pending.slice().forEach(c => cueTimers.push(setTimeout(() => fire(c), ms * c.at / Math.max(1, spoken.length) + slack)));
       if (!on) { estimate(Math.min(est, 2600)); setTimeout(res, Math.min(est, 2600)); return; }
       if (clip) {
-        const a = new Audio(CLIP(clip)); clipEl = a;
+        const list = [].concat(clip); // several clips play one after another
         let done = false; const fin = () => { if (!done) { done = true; res(); } };
-        a.ontimeupdate = () => { if (a.duration) pending.slice().forEach(c => { if (a.currentTime / a.duration >= c.at / spoken.length) fire(c); }); };
-        a.onended = fin;
-        a.onerror = () => { if (clipEl === a) { clipEl = null; say(text, who).then(fin); } };
+        const play = i => {
+          const a = new Audio(CLIP(list[i])); clipEl = a;
+          a.ontimeupdate = () => { if (a.duration && list.length === 1) pending.slice().forEach(c => { if (a.currentTime / a.duration >= c.at / spoken.length) fire(c); }); };
+          a.onended = () => { if (clipEl !== a) return; if (i + 1 < list.length) play(i + 1); else { pending.slice().forEach(fire); fin(); } };
+          if (clipEnd && list.length === 1) { const t = setInterval(() => { if (clipEl !== a) return clearInterval(t); if (a.currentTime >= clipEnd) { clearInterval(t); a.pause(); a.onended(); } }, 40); } // stop at the end of the good part
+          a.onerror = () => { if (clipEl === a) { clipEl = null; sayLine(text, who, null, null).then(fin); } };
+          const p = a.play(); if (p && p.catch) p.catch(() => a.onerror && a.onerror());
+        };
         if (synth) synth.cancel();
-        const p = a.play(); if (p && p.catch) p.catch(() => a.onerror && a.onerror());
-        setTimeout(fin, 15000);
+        play(0);
+        setTimeout(fin, 15000 * list.length);
         return;
       }
       if (!synth) { setTimeout(res, Math.min(est, 2600)); return; }
-      synth.cancel();
+      synth.cancel(); synth.resume(); // never left stuck paused
       const u = new SpeechSynthesisUtterance(spoken);
       if (pending.length) {
         estimate(est, 1200); // only used if this browser never reports word boundaries
@@ -230,10 +238,12 @@ const Voice = (() => {
     });
   }
 
-  // a hidden tab pauses the voice too (a recorded clip or the browser's speech), and resumes it on return
+  // a hidden tab pauses a recorded clip and stops the browser's speech (Chrome's speech can stay stuck if it's paused,
+  // which silences every later line); coming back resumes the clip and clears any stuck speech
+  let cutLine = null;
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { if (clipEl) clipEl.pause(); if (synth && synth.speaking) synth.pause(); }
-    else { if (clipEl) clipEl.play().catch(() => {}); if (synth && synth.paused) synth.resume(); }
+    if (document.hidden) { if (clipEl) clipEl.pause(); if (synth && (synth.speaking || synth.pending)) { cutLine = true; synth.cancel(); } }
+    else { if (clipEl) clipEl.play().catch(() => {}); if (synth) { synth.resume(); if (cutLine) { cutLine = null; synth.cancel(); } } }
   });
 
   return {

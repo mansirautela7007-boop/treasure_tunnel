@@ -1000,10 +1000,10 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #stage.cast #pathArt { transform: translateY(-70px) scale(.72) !important; transform-origin: 380.5px -55px; transition: transform .5s cubic-bezier(.3,1.2,.4,1), opacity .45s; }
 #stage.path-art #scroll, #stage.unlock-scroll #scroll, #stage.path-art #pathArt { transition: transform .5s cubic-bezier(.3,1.2,.4,1), opacity .45s; }
 /* the map unrolls from the middle when it first appears */
-#scroll.unroll { animation: scrollUnroll .9s cubic-bezier(.3,1.1,.4,1) both; }
-#pathArt.unroll { animation: mapInkIn .6s .55s ease-out both; }
-@keyframes scrollUnroll { 0% { clip-path: inset(0 47% 0 47%); opacity: 0; } 15% { opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 1; } }
-@keyframes mapInkIn { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
+#scroll.unroll { animation: scrollUnroll .9s cubic-bezier(.3,1.1,.4,1); }
+#pathArt.unroll { animation: mapInkIn .6s .55s ease-out backwards; }
+@keyframes scrollUnroll { 0% { clip-path: inset(0 47% 0 47%); } 100% { clip-path: inset(0 0 0 0); } }
+@keyframes mapInkIn { from { opacity: 0; filter: blur(6px); } }
 #stage.cast #slots { opacity: 0; transition: opacity .3s; } /* the tucked map sits where the key bar is, so the bar steps out while the characters talk */
 
 /* key questions where a stone can be tapped to walk there */
@@ -1018,3 +1018,32 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 @keyframes stoneWin { 50% { transform: scale(1.1); } }
 /* confetti and sparkles draw on top of the map scroll and its route */
 #fx { z-index: 6; }
+
+/* step counter: the number sits in the middle of its circle */
+.counter { display: flex; align-items: center; justify-content: center; line-height: 1 !important; padding-top: 3px; box-sizing: border-box; }
+/* banners like "2/4 SOLVED" and "NEXT PATH REVEALED!" sit in front of the map */
+#toast { z-index: 7; }
+#coach .co-card[hidden] { display: none !important; } /* the tutorial shows no caption, only the spotlight and the hand */
+
+/* the ending's treasure chest sprite and the keys that fly into its lock */
+.prop.chestsprite { position: absolute; width: 400px; height: 380px; background: var(--a-chest_open_sheet) 0 0 / 600% 600% no-repeat;
+  filter: drop-shadow(0 16px 18px rgba(0,0,0,.5)); }
+.prop.chestsprite.clink { animation: chestClink .25s; }
+@keyframes chestClink { 50% { transform: translateY(3px) scale(1.01); } }
+.prop.endkey { position: absolute; width: 48px; height: 48px; animation: endKeyIn .35s cubic-bezier(.2,1.6,.4,1) both, keySpin 1.4s ease-in-out .35s infinite; filter: drop-shadow(0 0 10px #ffd54a); }
+.prop.endkey img, .prop.endkey svg { width: 100%; height: 100%; }
+@keyframes endKeyIn { from { transform: scale(0); opacity: 0; } }
+
+/* the ending's run into the tunnel: the explorer is drawn from the running sprite sheet (frame 344 × 564) */
+.actor.runsheet .bob { aspect-ratio: 344 / 564; width: 82%; margin: 0 auto; background: var(--a-explorer_run_sheet) 0 0 / 600% 600% no-repeat; filter: drop-shadow(0 10px 8px rgba(0,0,0,.45)); }
+.actor.runsheet .bob img { visibility: hidden; position: absolute; }
+
+/* the answer hand (after the 4th wrong try): taps on the right stone / the next key to press */
+.answer-hand { position: absolute; left: 50%; top: 50%; width: 0; height: 0; z-index: 5; pointer-events: none; }
+.answer-hand i { position: absolute; left: -30px; top: -30px; width: 60px; height: 60px; border-radius: 50%; border: 5px solid #fff; box-shadow: 0 0 14px #ffd54a; animation: coRipple 1s ease-out infinite; }
+.answer-hand b { position: absolute; left: -18px; top: 2px; font-size: 64px; line-height: 1; font-weight: normal; filter: drop-shadow(0 5px 5px rgba(0,0,0,.5)); animation: paTap 1s ease-in-out infinite; }
+#tray .k { position: relative; }
+#nl .stone .answer-hand { top: 30%; }
+#nl .stone:has(.answer-hand) { z-index: 8; } /* the hand sits above the hint arrow */
+#nl .stone .answer-hand { top: 18%; }
+#nl .stone .answer-hand b { font-size: 76px; }
