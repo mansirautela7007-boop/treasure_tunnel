@@ -56,6 +56,8 @@ const LEVELS = [
     keys: [
       { start: 0, delta: 3, eq: '0 + 3 = ?', cele: 'KEY FOUND!', size: 'small', coach: true, tapStones: true, // how to play: a guided tour of every control
         vo: 'The next key is at.',
+        coachArrows: 'To reach the correct stone, move forward or backward using these arrow buttons.',
+        coachJump: 'Jump at the right stone.',
         found: 'Correct! You found it. The key is right here.',
         wrong: ['Oops! No key is here. Try again.', 'Move 3 steps forward from 0.', 'Look closely at where the explorer reaches.'],
         idle: 'Follow the explorer and see where he reaches.' },
@@ -82,11 +84,12 @@ const LEVELS = [
     ],
     mapIntro: [
       { who: 'explorer', text: 'I got it! Now, I have a map to reach the treasure.' },
-      { who: 'wizard', text: 'Hahaha! Only one piece of map found! Two more to go.' },
+      { who: 'wizard', text: 'Hahaha! Only one piece of map found! Two more to go.', exp: 'explorer_worried' }, // the explorer's face falls
       { who: 'wizard', text: 'Solve the map puzzles to reveal the further path.', vo: true },
     ],
     mysteries: [
       { start: 7, delta: 6, eq: '(+7) + 6 = ?', tutorial: true, coach: true, // guided tour of the keypad
+        coachLook: 'Check the puzzle.', coachWrite: 'Write the correct answer.',
         correct: 'Correct! You reached +13. Part of the path is revealed!',
         wrong: ['', '', ''] /* the script has no wrong-answer lines for this puzzle */,
         idle: 'Start at +7 and follow the 6 steps to the right.' },
@@ -104,13 +107,13 @@ const LEVELS = [
         idle: 'Solve the last puzzle to reveal the path.' },
     ],
     hint3: 'tokens', // third wrong try: the equation's numbers pulse (no number strip)
-    unlock: { wizard: null, explorer: 'Yayy!' }, // script: the explorer cheers; the wizard has no line here
+    unlock: { wizard: null, explorer: null }, // no separate "Yayy!": the explorer's "I got it!…" follows the map
     revealed: { ost: 'NEXT PATH REVEALED!', idle: 'Follow the path to the next chamber.' }, // no lines here in the script
   },
 
   /* ---------------- LEVEL 2 ---------------- */
   {
-    name: 'Shadow Chamber', bg: 'bg_level2_shadow_chamber', ledge: 0.579,
+    name: 'Shadow Chamber', bg: 'bg_level2_crystal_spires', ledge: 0.579,
     // Chamber 1's look on Chamber 2's own background; map puzzles on the scroll
     theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP', mapScroll: true,
     artMap: true, // unlock + between puzzles use the path illustration, like Chamber 1
@@ -129,11 +132,16 @@ const LEVELS = [
     ],
     keysIntro: 'Move in the correct direction to find your keys.',
     keys: [
+      // a solved example: the explorer reasons it out, then the player walks him (Left ×3) and taps JUMP; on their own from key 2
       { start: -2, delta: -3, eq: '(−2) + (−3) = ?', cele: 'KEY FOUND!', size: 'small',
-        vo: 'The next key is at.',
-        found: 'Correct! You found it. The key is at −5.',
-        wrong: ['Oops! Try again.', 'Remember, adding a negative changes the direction. Move left.', 'Start at −2 and count 3 steps to the left.'],
-        idle: 'Follow the path and find where he reaches.' },
+        demo: {
+          start: 'I am at -2,',
+          sub: 'I have to add a number, so move to right,', subPose: 'explorer_point', // he turns and points right
+          flip: 'but there is a negative sign, so change the direction to the left', flipHl: 'token', // all of (−3) glows
+          walk: 'and walk 3 steps.',
+          jump: 'I reached to -5. Jump.', // said on −5, before the player taps JUMP
+          done: 'yay! I got the key.',
+        } },
       { start: 9, delta: -2, eq: '(+9) + (−2) = ?', cele: '+1 KEY', size: 'small',
         vo: 'The next key is at.',
         found: 'Correct! You found it. The key is at +7.',
@@ -184,7 +192,7 @@ const LEVELS = [
 
   /* ---------------- LEVEL 3 ---------------- */
   {
-    name: 'Crystal Cavern', bg: 'bg_level3_lava', stones: 'lava', ledge: 0.579, // lava cavern and lava stones throughout
+    name: 'Crystal Cavern', bg: 'bg_level3_lava_sea', stones: 'lava', ledge: 0.579, // lava cavern and lava stones throughout
     // same look as Chamber 1; prompt stays general so it doesn't give away the direction
     theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP',
     mapScroll: true, artMap: true, // map puzzles on the scroll; unlock + between puzzles use the path illustration, like Chamber 1
@@ -203,11 +211,15 @@ const LEVELS = [
     ],
     keysIntro: 'Move in the correct direction to find your key.',
     keys: [
+      // a solved example: the explorer works this one out aloud and moves by himself; the player takes over from key 2
       { start: -3, delta: 4, eq: '(−3) − (−4) = ?', cele: 'KEY FOUND!', size: 'small',
-        vo: 'The next key is at.',
-        found: 'Yes! You found it. The key is +1.',
-        wrong: [OOPS_KEY, 'Remember, subtracting a negative changes the direction. Move right.', 'Start at −3 and count 4 steps to the right.'],
-        idle: 'Follow the explorer’s path and find where he reaches.' },
+        demo: {
+          start: 'I am at −3.',
+          sub: 'I have to subtract a number, so move to left.',
+          flip: 'But there is a negative sign, so change the direction to the right.',
+          walk: 'And walk 4 steps.', // then the player taps Right four times and JUMP
+          done: 'Yay! I got the key! Now it’s your turn!',
+        } },
       { start: 6, delta: 5, eq: '(+6) − (−5) = ?', cele: '+1 KEY', size: 'small',
         vo: 'The next key is at.',
         found: 'Great! You found it. The key is at +11.',
@@ -346,6 +358,11 @@ const RECORDED_VO = {
  "Watch carefully. Where does the explorer reach?": "el_wizard_081723",
  "Follow each step and find where the explorer reaches.": "el_wizard_081801",
  "Correct! You found it. The explorer reached −7. The key is right here.": "el_wizard_090514",
+ // "…reached −3": "…reached minus" from the −7 line, then "three. The key is right here." from the +3 line
+ "Correct! You found it. The explorer reached −3. The key is right here.": [{ clip: 'el_wizard_090514', end: 4.7 }, { clip: 'el_wizard_081647', start: 4.47 }],
+ // "minus" from the −7 line goes in front of the number
+ "Move 7 steps forward from −10.": [{ clip: 'el_wizard_081749', end: 2.61 }, { clip: 'el_wizard_090514', start: 4.07, end: 4.7 }, { clip: 'el_wizard_081749', start: 2.62 }],
+ "Move 7 steps backward from −7.": [{ clip: 'el_wizard_090626', end: 2.7 }, { clip: 'el_wizard_090514', start: 4.07, end: 4.7 }, { clip: 'el_wizard_090626', start: 2.71 }],
  "Move 8 steps backward from 1.": "el_wizard_090523",
  "Keep counting until the explorer stops.": "el_wizard_090532",
  "Watch carefully as the explorer moves past 0.": "el_wizard_090543",
@@ -353,7 +370,10 @@ const RECORDED_VO = {
  "Look where the explorer reaches after 7 steps.": "el_wizard_090636",
  "The last key is waiting! Follow the explorer carefully.": "el_wizard_090646",
  "I got it! Now, I have a map to reach the treasure.": [
-  "el_explorer_13",
+  {
+   "clip": "el_explorer_13",
+   "start": 0.6
+  },
   "el_explorer_14"
  ],
  "Hahaha! Only one piece of map found! Two more to go.": "el_wizard_090656",
@@ -387,5 +407,9 @@ const RECORDED_VO = {
   "el_explorer_16"
  ],
  "Hahaha! Last piece of map revealed!": "el_wizard_091322",
- "Solve the map puzzles to reveal the final path to treasure.": "el_wizard_091345"
+ "Solve the map puzzles to reveal the final path to treasure.": "el_wizard_091345",
+ "Yayy!": {
+  "clip": "el_explorer_13",
+  "end": 0.6
+ }
 };

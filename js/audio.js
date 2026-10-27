@@ -1,8 +1,42 @@
 /* Sound: every effect is synthesised with the Web Audio API (no audio files).
    Voice: the browser's built-in speech synthesis reads each line aloud. */
 
+/* Clock: the pause button freezes the whole game. Every timer, interval and animation frame goes through it,
+   so a paused game keeps each one's time left and carries on from there when it resumes. */
+const Clock = (() => {
+  const nT = setTimeout.bind(window), nC = clearTimeout.bind(window), nRAF = requestAnimationFrame.bind(window);
+  const timers = new Map(), held = []; let paused = false, seq = 0, frozen = [];
+  const arm = (id, t, ms) => { t.due = performance.now() + ms; t.h = nT(() => fire(id), ms); };
+  function fire(id) { const t = timers.get(id); if (!t) return; if (t.rep) arm(id, t, t.ms); else timers.delete(id); t.fn(...t.args); }
+  function add(fn, ms, args, rep) {
+    const id = ++seq, t = { fn: typeof fn === 'function' ? fn : () => {}, args, ms: Math.max(rep ? 1 : 0, +ms || 0), rep };
+    timers.set(id, t); if (paused) t.left = t.ms; else arm(id, t, t.ms); return id;
+  }
+  function clear(id) { const t = timers.get(id); if (t) { nC(t.h); timers.delete(id); } }
+  window.setTimeout = (fn, ms, ...args) => add(fn, ms, args, false);
+  window.setInterval = (fn, ms, ...args) => add(fn, ms, args, true);
+  window.clearTimeout = window.clearInterval = clear;
+  window.requestAnimationFrame = cb => nRAF(ts => { if (paused) held.push(cb); else cb(ts); });
+  return {
+    get paused() { return paused; },
+    // `keep` is the element whose own animations carry on (the pause menu)
+    pause(keep) {
+      if (paused) return; paused = true; const now = performance.now();
+      timers.forEach(t => { nC(t.h); t.left = Math.max(0, t.due - now); });
+      frozen = document.getAnimations().filter(a => a.playState === 'running' && !(keep && keep.contains(a.effect && a.effect.target)));
+      frozen.forEach(a => a.pause());
+    },
+    resume() {
+      if (!paused) return; paused = false;
+      timers.forEach((t, id) => arm(id, t, t.left));
+      frozen.forEach(a => { try { a.play(); } catch (e) {} }); frozen = [];
+      held.splice(0).forEach(cb => nRAF(cb));
+    },
+  };
+})();
+
 const Sound = (() => {
-  let ctx = null, master, sfx, amb, mus, on = true, ambTimer = null, drone = null, music = null, musicWanted = false, ducked = false;
+  let ctx = null, master, sfx, amb, mus, on = true, ambTimer = null, drone = null, music = null, musicWanted = false, ducked = false, held = false;
   const MUSIC_DEFAULT = 0.2, DUCK = 0.4; // music sits under the voice; it dips further while a line is spoken
   let musicVol = MUSIC_DEFAULT, musicMuted = false; // the QA panel's slider can change the volume; the music button mutes it
 
@@ -83,7 +117,7 @@ const Sound = (() => {
 
   function startAmbience() {
     if (!ctx) return;
-    amb.gain.setTargetAtTime(on ? 0.5 : 0, ctx.currentTime, 0.8);
+    amb.gain.setTargetAtTime(on && !held ? 0.5 : 0, ctx.currentTime, 0.8);
     if (!drone) {
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220; lp.connect(amb);
       const g = ctx.createGain(); g.gain.value = 0.05; g.connect(lp);
@@ -102,7 +136,7 @@ const Sound = (() => {
   /* background music: "Treasure Hunter" by TAD (CC0, opengameart.org/content/treasure-hunter), assets/audio/bgm_treasure_hunter.m4a.
      Played through Web Audio so the loop has no gap; the silence the encoder adds at each end is trimmed off. */
   const MUSIC_SRC = () => (window.AUDIO && window.AUDIO.bgm_treasure_hunter) || 'assets/audio/bgm_treasure_hunter.m4a';
-  function musicLevel(t = 0.6) { if (ctx && mus) mus.gain.setTargetAtTime(on && musicWanted && !musicMuted ? musicVol * (ducked ? DUCK : 1) : 0, ctx.currentTime, t); }
+  function musicLevel(t = 0.6) { if (ctx && mus) mus.gain.setTargetAtTime(on && musicWanted && !musicMuted && !held ? musicVol * (ducked ? DUCK : 1) : 0, ctx.currentTime, t); }
   async function startMusic() {
     musicWanted = true;
     if (!ctx) return; // starts once sound is unlocked by the first tap
@@ -126,7 +160,7 @@ const Sound = (() => {
   document.addEventListener('visibilitychange', () => {
     if (!ctx) return;
     if (document.hidden) ctx.suspend();
-    else if (on) ctx.resume();
+    else if (on) ctx.resume(); // a paused game stays quiet through hold()
   });
 
   return {
@@ -139,7 +173,9 @@ const Sound = (() => {
     set musicMuted(m) { musicMuted = !!m; musicLevel(0.25); },
     fx: new Proxy(fx, { get: (o, k) => (...a) => { try { o[k](...a); } catch (e) {} } }),
     get on() { return on; },
-    toggle() { on = !on; if (ctx) amb.gain.setTargetAtTime(on ? 0.5 : 0, ctx.currentTime, 0.3); musicLevel(0.3); return on; },
+    toggle() { on = !on; if (ctx) amb.gain.setTargetAtTime(on && !held ? 0.5 : 0, ctx.currentTime, 0.3); musicLevel(0.3); return on; },
+    // the paused game: music and ambience fall silent (button taps still sound)
+    hold(h) { held = !!h; if (ctx) amb.gain.setTargetAtTime(on && !held ? 0.5 : 0, ctx.currentTime, 0.15); musicLevel(0.15); },
   };
 })();
 
@@ -183,13 +219,12 @@ const Voice = (() => {
   // from where the word sits in the line; a recorded clip uses its playback position.
   function say(text, who = 'narrator', clip = null, cues = null) {
     // a line with a recorded voice-over always uses it (see RECORDED_VO in data.js)
-    let clipEnd = null;
-    if (typeof RECORDED_VO !== 'undefined' && RECORDED_VO[text]) { const v = RECORDED_VO[text]; if (v.clip) { clip = v.clip; clipEnd = v.end; } else clip = v; }
+    if (typeof RECORDED_VO !== 'undefined' && RECORDED_VO[text]) clip = RECORDED_VO[text];
     Sound.duck(true);
-    return sayLine(text, who, clip, cues, clipEnd).finally(() => { if (!speaking) Sound.duck(false); });
+    return sayLine(text, who, clip, cues).finally(() => { if (!speaking) Sound.duck(false); });
   }
   let speaking = 0;
-  function sayLine(text, who, clip, cues, clipEnd = null) {
+  function sayLine(text, who, clip, cues) {
     const me = ++speaking;
     return new Promise(res0 => {
       const res = () => { if (speaking === me) speaking = 0; res0(); };
@@ -201,13 +236,17 @@ const Voice = (() => {
       const estimate = (ms, slack = 0) => pending.slice().forEach(c => cueTimers.push(setTimeout(() => fire(c), ms * c.at / Math.max(1, spoken.length) + slack)));
       if (!on) { estimate(Math.min(est, 2600)); setTimeout(res, Math.min(est, 2600)); return; }
       if (clip) {
-        const list = [].concat(clip); // several clips play one after another
+        // a clip is a name, or { clip, start, end } for part of a recording; a list plays one after another
+        const list = [].concat(clip).map(c => typeof c === 'string' ? { clip: c } : c);
         let done = false; const fin = () => { if (!done) { done = true; res(); } };
         const play = i => {
-          const a = new Audio(CLIP(list[i])); clipEl = a;
-          a.ontimeupdate = () => { if (a.duration && list.length === 1) pending.slice().forEach(c => { if (a.currentTime / a.duration >= c.at / spoken.length) fire(c); }); };
+          const it = list[i], a = new Audio(CLIP(it.clip)); clipEl = a;
+          if (it.start) { const seek = () => { a.currentTime = it.start; }; if (a.readyState >= 1) seek(); else a.addEventListener('loadedmetadata', seek, { once: true }); }
+          // cues fire at their word's share of the part actually played (a trimmed clip is shorter than its file)
+          const cueTick = () => { const s0 = it.start || 0, len = (it.end || a.duration) - s0; if (len > 0 && list.length === 1) pending.slice().forEach(c => { if ((a.currentTime - s0) / len >= c.at / spoken.length) fire(c); }); };
+          a.ontimeupdate = cueTick; const cueT = setInterval(() => { if (clipEl !== a || a.ended) return clearInterval(cueT); if (!a.paused) cueTick(); }, 60);
           a.onended = () => { if (clipEl !== a) return; if (i + 1 < list.length) play(i + 1); else { pending.slice().forEach(fire); fin(); } };
-          if (clipEnd && list.length === 1) { const t = setInterval(() => { if (clipEl !== a) return clearInterval(t); if (a.currentTime >= clipEnd) { clearInterval(t); a.pause(); a.onended(); } }, 40); } // stop at the end of the good part
+          if (it.end) { const t = setInterval(() => { if (clipEl !== a) return clearInterval(t); if (a.currentTime >= it.end) { clearInterval(t); a.pause(); a.onended(); } }, 30); } // stop at the end of the part we want
           a.onerror = () => { if (clipEl === a) { clipEl = null; sayLine(text, who, null, null).then(fin); } };
           const p = a.play(); if (p && p.catch) p.catch(() => a.onerror && a.onerror());
         };
@@ -242,11 +281,15 @@ const Voice = (() => {
   // which silences every later line); coming back resumes the clip and clears any stuck speech
   let cutLine = null;
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { if (clipEl) clipEl.pause(); if (synth && (synth.speaking || synth.pending)) { cutLine = true; synth.cancel(); } }
-    else { if (clipEl) clipEl.play().catch(() => {}); if (synth) { synth.resume(); if (cutLine) { cutLine = null; synth.cancel(); } } }
+    // only a clip that was actually playing is paused and later resumed (a finished line is never replayed)
+    if (document.hidden) { if (clipEl && !clipEl.paused && !clipEl.ended) { clipEl.pause(); clipEl._tabPaused = true; } if (synth && (synth.speaking || synth.pending)) { cutLine = true; synth.cancel(); } }
+    else { if (clipEl && clipEl._tabPaused) { clipEl._tabPaused = false; clipEl.play().catch(() => {}); } if (synth) { synth.resume(); if (cutLine) { cutLine = null; synth.cancel(); } } }
   });
 
   return {
+    // the pause button: the line stops mid-word and carries on from there
+    pause() { if (clipEl && !clipEl.paused && !clipEl.ended) { clipEl.pause(); clipEl._held = true; } if (synth && synth.speaking) synth.pause(); },
+    resume() { if (clipEl && clipEl._held) { clipEl._held = false; clipEl.play().catch(() => {}); } if (synth && synth.paused) synth.resume(); },
     say, stop() { stopClip(); clearCues(); if (synth) synth.cancel(); speaking = 0; Sound.duck(false); },
     get on() { return on; },
     toggle() { on = !on; if (!on) { stopClip(); if (synth) synth.cancel(); } return on; },

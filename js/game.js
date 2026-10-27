@@ -3,7 +3,9 @@
 'use strict';
 
 const $ = s => document.querySelector(s);
-const ASSET = n => (window.ASSETS && window.ASSETS[n]) || `assets/${n}.webp`;
+// art is .webp unless listed here (the single-file build embeds every format under its name)
+const ASSET_EXT = { cover_start: 'png', ui_btn_pause: 'png', ui_btn_hint: 'png', bg_level3_lava_sea: 'jpg', bg_level2_crystal_spires: 'jpg' };
+const ASSET = n => (window.ASSETS && window.ASSETS[n]) || `assets/${n}.${ASSET_EXT[n] || 'webp'}`;
 const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let STEP = 112; // stone spacing, set per level in NL.build
 const MIN = -25, MAX = 25;
@@ -189,7 +191,7 @@ function bubble(who, text, mode = 'bottom', speak = true, clip = null, cues = nu
 }
 async function say(who, text, mode = 'bottom') { const r = RUN; await bubble(who, text, mode); guard(r); }
 function bubbleText(text) { $('#bubble .txt').innerHTML = text; }
-function hideBubble() { $('#bubble').className = ''; }
+function hideBubble() { $('#bubble').classList.remove('on', 'pop', 'has-next'); } // keeps its look while it fades out
 // game lines are spoken only, never shown on screen (the script's on-screen text goes on the sign)
 // narration: the narrator and the game's instructions are voice only (no box), in the narrator's voice
 function speakOnly(who, text) { hideBubble(); if (!text) return Promise.resolve(); lastLine = { who: 'narrator', text }; return Voice.say(text, 'narrator'); }
@@ -218,12 +220,15 @@ function placeTalk(b, who) {
   b.classList.remove('tail-down', 'tail-left', 'tail-right', 'solo');
   Object.assign(b.style, { left: '', top: '', width: '', marginLeft: '' });
   if (!r) { b.classList.add('solo'); return; } // nobody on screen: a bubble at the bottom with the speaker's portrait
+  // a bubble beside the speaker: its tail (57px) ends just clear of the body; the small explorer on the number line needs more room
+  const gap = !actors[who === 'wizard' ? 'wiz' : 'exp'] ? 50 : 40;
   const cx = r.x + r.w / 2, head = r.y + r.h * .1, top = r.y + r.h * .02; // top: the tip of the hat
   const other = speakerRect(who === 'wizard' ? 'explorer' : 'wizard');
   // things a bubble mustn't cover (only the top bar's buttons, not its empty width)
   const avoid = ['#tablet.on', '#dirPick.on', '#tray.on', '#btnPause', '#btnHelp', '#slots.on'].map(q => $(q)).filter(e => e && e.offsetParent).map(stageRect)
     .concat(stage.classList.contains('cast') ? [MAP_TUCKED, MAP_TUCKED] : []) // the map counts double: never cover it
     .concat([...document.querySelectorAll('#nl .nl-arrow, #nl .nl-arrow .lab')].map(stageRect)) // the direction arrows and their labels
+    .concat($('#demoDir') && NL.exp ? [(e => ({ x: e.x - 150, y: e.y + e.h * .3, w: e.w + 300, h: 60 }))(stageRect(NL.exp))] : []) // the solved example's arrow, on either side of the explorer
     .concat($('#nlWrap').classList.contains('on') && NL.stone(0) ? [{ x: 0, y: stageRect(NL.stone(0)).y, w: STAGE_W, h: stageRect(NL.stone(0)).h }] : []) // the number line
     .concat(other ? [{ x: other.x + other.w * .12, y: other.y, w: other.w * .76, h: other.h }] : []).concat([{ x: r.x + r.w * .12, y: r.y, w: r.w * .76, h: r.h }]); // both characters' bodies
   const overlap = q => avoid.reduce((s, a) => s + Math.max(0, Math.min(q.x + q.w, a.x + a.w) - Math.max(q.x, a.x)) * Math.max(0, Math.min(q.y + q.h, a.y + a.h) - Math.max(q.y, a.y)), 0);
@@ -233,12 +238,12 @@ function placeTalk(b, who) {
     b.style.width = `${w}px`; const h = b.offsetHeight;
     const above = { x: cx - w / 2, y: top - 62 - h, tail: 'down' }; // the tail (about 55px) ends just above the hat
     const cands = [above, { ...above, x: r.x + r.w * .55 - w * .2 }, { ...above, x: r.x + r.w * .45 - w * .8 },
-      { x: away === 'left' ? r.x + r.w * .15 - 40 - w : r.x + r.w * .85 + 40, y: head + 10, tail: away === 'left' ? 'right' : 'left' },
-      { x: away === 'left' ? r.x + r.w * .85 + 40 : r.x + r.w * .15 - 40 - w, y: head + 10, tail: away === 'left' ? 'left' : 'right' },
+      { x: away === 'left' ? r.x + r.w * .15 - gap - w : r.x + r.w * .85 + gap, y: head + 10, tail: away === 'left' ? 'right' : 'left' },
+      { x: away === 'left' ? r.x + r.w * .85 + gap : r.x + r.w * .15 - gap - w, y: head + 10, tail: away === 'left' ? 'left' : 'right' },
       // beside the head but raised, so it clears a character standing lower down
-      { x: away === 'left' ? r.x + r.w * .15 - 40 - w : r.x + r.w * .85 + 40, y: head + 40 - h, tail: away === 'left' ? 'right' : 'left' },
-      { x: away === 'left' ? r.x + r.w * .85 + 40 : r.x + r.w * .15 - 40 - w, y: head + 40 - h, tail: away === 'left' ? 'left' : 'right' },
-      { x: away === 'left' ? r.x + r.w * .15 - 40 - w : r.x + r.w * .85 + 40, y: 720, tail: away === 'left' ? 'right' : 'left' }]; // along the bottom, last resort
+      { x: away === 'left' ? r.x + r.w * .15 - gap - w : r.x + r.w * .85 + gap, y: head + 40 - h, tail: away === 'left' ? 'right' : 'left' },
+      { x: away === 'left' ? r.x + r.w * .85 + gap : r.x + r.w * .15 - gap - w, y: head + 40 - h, tail: away === 'left' ? 'left' : 'right' },
+      { x: away === 'left' ? r.x + r.w * .15 - gap - w : r.x + r.w * .85 + gap, y: 720, tail: away === 'left' ? 'right' : 'left' }]; // along the bottom, last resort
     for (const c of cands) {
       c.w = w; c.h = h;
       c.x = Math.max(12, Math.min(STAGE_W - 12 - w, c.x)); c.y = Math.max(12, Math.min(720 - 12 - h, c.y));
@@ -252,7 +257,10 @@ function placeTalk(b, who) {
   b.style.width = `${best.w}px`; b.style.left = `${best.x}px`; b.style.top = `${best.y}px`;
   b.classList.add(`tail-${best.tail}`);
   if (best.tail === 'down') tail.style.left = `${Math.max(26, Math.min(best.w - 70, cx - best.x - 20))}px`, tail.style.top = '';
-  else tail.style.top = `${Math.max(18, Math.min(best.h - 60, Math.max(head + 30, best.y) - best.y))}px`, tail.style.left = '';
+  else { // a side tail: its base (13–45px down the tail box) stays on the straight part of the edge, clear of the rounded corners (≈42px)
+    const lo = 29, hi = best.h - 87, want = Math.max(head + 30, best.y) - best.y;
+    tail.style.top = `${hi >= lo ? Math.max(lo, Math.min(hi, want)) : best.h / 2 - 29}px`; tail.style.left = '';
+  }
 }
 // while the characters talk on a map screen, the map is tucked up and smaller (see #stage.cast in the CSS): this is where it sits
 const MAP_TUCKED = { x: 281, y: 20, w: 725, h: 432 };
@@ -269,7 +277,6 @@ function showTalk(who, text, cues = null) {
   const plain = text.replace(/<[^>]+>/g, ''), lower = plain.toLowerCase();
   txt.innerHTML = `<span class="ghost">${plain}</span>`; // full size first, so the bubble can be placed
   placeTalk(b, who); retrigger(b, 'pop'); Sound.fx.pop();
-  const pending = (cues || []).map(c => ({ ...c, at: Math.max(0, lower.search(new RegExp(`\\b${c.word.toLowerCase()}`))) }));
   const words = plain.split(/\s+/).length, hold = Math.min(6500, 1300 + words * 340); // reading time after the typing ends
   return new Promise(res => {
     let i = 0;
@@ -297,7 +304,8 @@ function setPlaying(on) { stage.classList.toggle('playing', on); if (!on) toggle
 function toggleRules(open = !$('#rulesDrop').classList.contains('on')) {
   const d = $('#rulesDrop'), b = $('#btnHelp');
   if (open) {
-    d.innerHTML = LEVELS.flatMap(l => l.rule).map(([s, w, dir]) => `<div class="rc"><b>${s}</b> ${w} → ${dir === 'left' ? '◀ left' : 'right ▶'}</div>`).join('');
+    // only the rules taught so far: this chamber's and the ones before it
+    d.innerHTML = LEVELS.slice(0, S.level + 1).flatMap(l => l.rule).map(([s, w, dir]) => `<div class="rc"><b>${s}</b> ${w} → ${dir === 'left' ? '◀ left' : 'right ▶'}</div>`).join('');
     const r = b.getBoundingClientRect(), st = stage.getBoundingClientRect(), k = st.width / STAGE_W;
     // the notch (140px in) sits under the button; the panel hangs just below it
     d.style.left = `${(r.left + r.width / 2 - st.left) / k - 140}px`; d.style.top = `${(r.bottom - st.top) / k + 14}px`;
@@ -317,7 +325,7 @@ function nextTap() {
   });
 }
 function fireNext() { if (pending.next) { const f = pending.next; pending.next = null; Sound.fx.tap(); f(); } }
-$('#btnNext').addEventListener('click', e => { e.stopPropagation(); if (typing) { typing.finish(); return; } fireNext(); });
+$('#btnNext').addEventListener('click', e => { e.stopPropagation(); fireNext(); });
 // no tap-anywhere: lines move on with a Next button only
 
 function cont(label = 'Continue', corner = false) {
@@ -365,6 +373,11 @@ const Tablet = {
     this.fit();
   },
   rule(html) { const t = $('#tablet'); t.className = 'on rule'; t.innerHTML = html; this.fit(); },
+  // the sign glows while its line is spoken ("The next key is at…"), and stops when the line ends
+  glow(said, onMap = false) {
+    const t = $('#tablet'), off = () => t.classList.remove('eq-hl', 'eq-map');
+    t.classList.add('eq-hl'); t.classList.toggle('eq-map', onMap); said.then(off, off);
+  },
   solve(v) { const t = $('#tablet'); const q = t.querySelector('.q'); if (q) { q.outerHTML = numHTML(v); } t.classList.add('solved'); this.fit(); },
   // a fixed-size sign: shrink the text only when it would spill past the frame
   fit() {
@@ -466,11 +479,22 @@ const NL = {
     const w = this.h * .75;
     if (instant) { this.exp.style.transition = 'none'; $('#nl').style.transition = 'none'; }
     this.exp.style.transform = `translate(${this.x(v) - w / 2}px, ${-this.h * .975 + 10}px)`;
+    this.look(v);
+    if (instant) { void this.exp.offsetWidth; this.exp.style.transition = ''; $('#nl').style.transition = ''; }
+  },
+  // the camera centres on number v (it can sit between stones)
+  look(v) {
     const trackW = (MAX - MIN + 1) * STEP;
     const cam = Math.max(STAGE_W - trackW, Math.min(0, STAGE_W / 2 - this.x(v)));
     $('#nl').style.transform = `translateX(${cam}px)`;
-    if (instant) { void this.exp.offsetWidth; this.exp.style.transition = ''; $('#nl').style.transition = ''; }
   },
+  // a gold tag over the answer stone shows its number (the 3rd-miss hint)
+  tag(v) {
+    let t = $('#answerTag');
+    if (!t) { t = document.createElement('div'); t.id = 'answerTag'; t.className = 'answer-tag'; $('#nl').appendChild(t); }
+    t.style.left = `${this.x(v)}px`; t.innerHTML = `<i>${KEY_SVG}</i>${fmt(v)}`; retrigger(t, 'on');
+  },
+  untag() { $('#answerTag')?.remove(); },
   screenX(v) { const m = /translateX\((-?[\d.]+)px\)/.exec($('#nl').style.transform); return this.x(v) + (m ? +m[1] : 0); },
   async walk(from, delta, { count = true, trail = true, stepMs = RM ? 260 : 480 } = {}) {
     const dir = Math.sign(delta); if (!dir) return;
@@ -505,7 +529,7 @@ const NL = {
       s.classList.remove('trail', 'land', 'miss', 'pulse', 'start', 'correct');
       if (!s.classList.contains('mark')) s.classList.remove('show');
     });
-    $('#keyprize').classList.remove('on', 'boxpop'); $('#keyBox')?.remove();
+    $('#keyprize').classList.remove('on', 'boxpop'); $('#keyBox')?.remove(); this.untag();
   },
   arrow(from, len, label, flipped = false, id = 'nlArrow') {
     let a = document.getElementById(id);
@@ -727,7 +751,7 @@ function resetUI() {
   MapView.hide(); HUD.hide();
   document.querySelectorAll('.fly, .puff, .poofcloud').forEach(e => e.remove());
   ['#badgeModal', '#final', '#title'].forEach(s => $(s).classList.remove('on'));
-  S.streak = 0; stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll', 'path-art', 'unlock-scroll', 'playing', 'stones-lava', 'cast', 'tap-stones'); toggleRules(false); $('#scroll').classList.remove('unroll'); $('#pathArt').classList.remove('unroll');
+  S.streak = 0; stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll', 'path-art', 'unlock-scroll', 'playing', 'stones-lava', 'cast', 'cast-now', 'tap-stones'); toggleRules(false); $('#scroll').classList.remove('unroll'); $('#pathArt').classList.remove('unroll');
   $('#pathArt').classList.remove('glow', 'faint'); $('#pathArt .pa-hand')?.classList.remove('on'); $('#pathArt .pa-token').classList.remove('on'); $('#pathArt .pa-lit').setAttribute('d', '');
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
@@ -830,7 +854,7 @@ const SCENES = {
     }
     await wait(700);
     // the lock turns and the lid opens (sprite: 36 frames, 6 × 6), then the treasure keeps glowing
-    Sound.fx.unlock(); actor('exp', { img: 'explorer_jump_key' }); actorAnim('exp', 'jump');
+    Sound.fx.unlock(); actor('exp', { img: 'explorer_thumbsup' }); actorAnim('exp', 'jump');
     await chestFrames(c, 0, 35, 84, f => { if (f === 12) { Sound.fx.creak(); } if (f === 16) { Sound.fx.fanfare(); FX.burst(lock.x, lock.y - 60, 40, 'coin', 12); FX.burst(lock.x, lock.y - 60, 30, 'gem', 10); FX.confetti('huge'); for (let i = 0; i < 6; i++) setTimeout(() => Sound.fx.coin(), i * 140); } });
     chestLoop(c, 18, 35, 84);
   },
@@ -871,11 +895,11 @@ async function teach(L) {
       if (!actors.wiz) { poofAt(1110, NL.top - 150); await wait(250); wizardOnLedge('wizard_explain', true); }
     } else if (t.type === 'arrows') {
       NL.stone(0).classList.remove('pulse');
-      // each arrow appears as the voice says its word ("add", then "subtract")
+      // each arrow appears at the end of its sentence, as the voice says "right", then "left"
       let live = true;
       const said = showTalk(t.who, t.text, [
-        { word: 'add', fn: () => { if (live) { NL.face(1); NL.arrow(0, 3, 'Add', false, 'nlArrowAdd'); } } },
-        { word: 'subtract', fn: () => { if (live) { NL.face(-1); NL.arrow(0, 3, 'Subtract', true); } } },
+        { word: 'right', fn: () => { if (live) { NL.face(1); NL.arrow(0, 3, 'Add', false, 'nlArrowAdd'); } } },
+        { word: 'left', fn: () => { if (live) { NL.face(-1); NL.arrow(0, 3, 'Subtract', true); } } },
       ]);
       await said; live = false; NL.hideArrow(); NL.face(1); continue;
     } else if (t.type === 'confused') {
@@ -951,7 +975,7 @@ const Coach = (() => {
     if (!targets.length || !box) return;
     const r = union(), pad = 12, ring = box.querySelector('.co-ring'), card = box.querySelector('.co-card'), hand = box.querySelector('.co-hand');
     Object.assign(ring.style, { left: `${r.x - pad}px`, top: `${r.y - pad}px`, width: `${r.w + pad * 2}px`, height: `${r.h + pad * 2}px` });
-    const hr = handEl ? rectOf(handEl) : r; // the hand points at the one control to press first
+    const he = typeof handEl === 'function' ? handEl() : handEl, hr = he ? rectOf(he) : r; // the hand points at the control to press next
     hand.style.left = `${hr.x + hr.w / 2}px`; hand.style.top = `${hr.y + hr.h - 8}px`;
     const cw = side ? 340 : 400, ch = 96;
     card.style.width = `${cw}px`;
@@ -968,7 +992,7 @@ const Coach = (() => {
     const r = RUN;
     targets = [].concat(els).filter(Boolean); if (!targets.length) return;
     if (!box) build();
-    side = beside; handEl = hand;
+    side = beside; handEl = hand; box.classList.toggle('no-hand', hand === false); // hand false: spotlight only
     box.querySelector('.co-card p').textContent = text;
     box.classList.add('on'); retrigger(box.querySelector('.co-card'), 'pop'); retrigger(box.querySelector('.co-ring'), 'pop');
     place(); clearInterval(track); track = setInterval(place, 120);
@@ -988,21 +1012,91 @@ const Coach = (() => {
 })();
 
 // Chamber 1, key 1: walk with the arrows, then JUMP
-async function coachKeyMoves(it, ans, asked, before = null) {
+// each line plays out in full before the next; the control it names is spotlit while it is said
+async function coachKeyMoves(it, ans, asked) {
   const pad = $('#dirPick'), arrows = [pad.querySelector('[data-dir="left"]'), pad.querySelector('[data-dir="right"]')], jump = pad.querySelector('[data-dir="jump"]');
-  const stop = asked.then(() => 'stop'), n = Math.abs(it.delta), way = it.delta > 0 ? '➜' : '←';
-  await Coach.step(arrows, `Tap ${way} to walk ${n} steps!`, `Tap the arrow to walk ${n} steps!`, { until: () => NL.pos === ans, stop, hand: arrows[it.delta > 0 ? 1 : 0], before });
-  if (Mover.active) await Coach.step(jump, 'Now JUMP to grab the key! 🔑', 'Now jump to grab the key!', { until: () => !Mover.active, stop });
+  let over = false; const stop = asked.then(() => { over = true; return 'stop'; });
+  const said = line => { const p = voiceOnly('wizard', line); p.catch(() => {}); return Promise.race([p.then(() => 'stop', () => 'stop'), stop]); };
+  const hand = arrows[it.delta > 0 ? 1 : 0];
+  await Coach.step(arrows, '', '', { until: () => false, stop: said(it.coachArrows), hand });
+  if (!over && NL.pos !== ans) await Coach.step(arrows, '', '', { until: () => NL.pos === ans, stop, hand });
+  if (!over && Mover.active) {
+    const jumpSaid = said(it.coachJump);
+    await Coach.step(jump, '', '', { until: () => !Mover.active, stop });
+    if (!over) await jumpSaid; // the jump line finishes before the key is found
+  }
   Coach.end();
+}
+// Chamber 1, map puzzle 1, before the keypad is used: the puzzle on its own, then "Check the puzzle." with only the
+// puzzle spotlit (at least 2.5 s), then the keypad comes up and is spotlit through "Write the correct answer."
+async function coachPuzzleIntro(m) {
+  const r = RUN, ended = p => p.then(() => 'stop', () => 'stop');
+  await wait(1000);
+  const look = voiceOnly('wizard', m.coachLook); look.catch(() => {});
+  await Coach.step($('#tablet'), '', '', { until: () => false, stop: Promise.all([ended(look), ended(wait(2500))]).then(() => 'stop'), hand: false });
+  guard(r); Dial.show(); await wait(350);
+  const write = voiceOnly('wizard', m.coachWrite); write.catch(() => {});
+  await Coach.step($('#tray'), '', '', { until: () => false, stop: ended(write), hand: false });
+  guard(r);
 }
 // Chamber 1, map puzzle 1: the keypad
 async function coachKeypad(m, ans, asked, before = null) {
   const tray = $('#tray'), stop = asked.then(() => 'stop'), need = String(Math.abs(ans)).length;
   const typed = () => ($('#display').textContent.match(/\d/g) || []).length;
   if (ans < 0) await Coach.step([...tray.querySelectorAll('.sign')], 'Pick − first!', 'First, tap minus!', { until: () => !!tray.querySelector('.sign.sel'), stop, beside: true, hand: tray.querySelector('.sign[data-k="-"]'), before });
-  if (Dial.active) await Coach.step(tray.querySelector('.digits'), 'Now tap the number!', 'Now tap the number!', { ...(ans > 0 ? { before } : {}), until: () => typed() >= need, stop, beside: true, hand: tray.querySelector(`.k[data-k="${String(Math.abs(ans))[0]}"]`) });
+  if (Dial.active) await Coach.step(tray.querySelector('.digits'), 'Now tap the number!', 'Now tap the number!', { ...(ans > 0 ? { before } : {}), until: () => typed() >= need, stop, beside: true, hand: () => tray.querySelector(`.k[data-k="${String(Math.abs(ans))[Math.min(typed(), need - 1)]}"]`) });
   if (Dial.active) await Coach.step(tray.querySelector('.k.go'), 'Tap CHECK! ✅', 'Now tap check!', { until: () => !Dial.active, stop, beside: true });
   Coach.end();
+}
+
+// a solved example (Chambers 2 and 3, first key), reasoned out by the explorer: where he stands, which way the operation
+// would usually go, why the negative turns him round; he turns on his stone while the pad is shown but locked.
+// Then the player taps the arrow stone by stone, and JUMP.
+async function solvedExample(it, ans) {
+  const d = it.demo, pad = $('#dirPick'), dir = Math.sign(it.delta), body = NL.exp.querySelector('.bob');
+  const toks = [...$('#tablet').querySelectorAll('.tok')], [first, op, second] = toks;
+  const btn = k => pad.querySelector(`[data-dir="${k}"]`), way = v => btn(v > 0 ? 'right' : 'left');
+  const hl = (...els) => { document.querySelectorAll('.demo-hl').forEach(e => e.classList.remove('demo-hl')); els.forEach(e => e && e.classList.add('demo-hl')); };
+  // the explorer turns: a quick squash through side-on, then he faces the new way
+  const turn = async to => { pulseClass(body, 'turning', 400); await wait(RM ? 60 : 180); NL.face(to); await wait(RM ? 60 : 200); };
+  // the small arrow beside him, on the side he means to go
+  const aim = (arrow, v) => { arrow.classList.toggle('back', v < 0); arrow.style.left = `${NL.x(it.start) + v * 105}px`; };
+  pad.classList.add('on', 'demo');
+  // 1. where he stands
+  hl(first); NL.stone(it.start)?.classList.add('show'); NL.face(1); NL.pose('explorer_idle'); NL.hop();
+  await talk('explorer', d.start);
+  // 2. the operation's usual way (the opposite of where he'll end up): he turns and leans that way, the arrow and its button glow
+  hl(op, way(-dir)); NL.pose('explorer_confused'); pulseClass(body, 'think', 1400);
+  const arrow = document.createElement('div'); arrow.className = 'demo-dir'; arrow.id = 'demoDir'; arrow.innerHTML = arrowSVG(84, 48, '#FFB52E');
+  aim(arrow, -dir); arrow.style.top = `${-NL.h * .45}px`; $('#nl').appendChild(arrow);
+  const talking = talk('explorer', d.sub);
+  await wait(RM ? 200 : 700); await turn(-dir); if (d.subPose) NL.pose(d.subPose); body.classList.add('lean'); arrow.classList.add('on'); Sound.fx.whoosh();
+  await talking;
+  // 3. the negative sign: he's surprised, the arrow swings round, he turns and points the other way. He stays on his stone.
+  if (second && d.flipHl !== 'token') second.innerHTML = second.textContent.replace('−', '<b class="sign">−</b>');
+  hl(d.flipHl === 'token' ? second : second?.querySelector('.sign'), way(dir)); body.classList.remove('lean'); NL.pose('explorer_worried'); pulseClass(NL.exp, 'shake', 450);
+  const flipping = talk('explorer', d.flip);
+  await wait(RM ? 300 : 1100); aim(arrow, dir); Sound.fx.whoosh();
+  await wait(RM ? 100 : 350); await turn(dir); NL.pose('explorer_point'); body.classList.add('lean');
+  await flipping;
+  // 4. the player walks him: only that arrow button works, a hand taps on it, one stone per tap; then (after the jump line) JUMP
+  hl(); arrow.remove(); body.classList.remove('lean'); NL.pose('explorer_idle');
+  await talk('explorer', d.walk);
+  pad.classList.remove('demo'); stage.classList.add('demo-walk');
+  while (true) {
+    const asked = Mover.ask(it.start); let over = false; asked.then(() => { over = true; });
+    const stop = asked.then(() => 'stop');
+    await Coach.step(way(dir), '', '', { until: () => NL.pos === ans, stop, hand: way(dir) });
+    if (!over && d.jump) { // on the answer: the stone and the sign show it, JUMP glows while he says so
+      Coach.end(); NL.stone(ans)?.classList.add('land', 'show'); Tablet.solve(ans); hl(btn('jump')); NL.pose('explorer_thumbsup');
+      await talk('explorer', d.jump); hl(); NL.pose('explorer_idle');
+    }
+    if (!over) await Coach.step(btn('jump'), '', '', { until: () => !Mover.active, stop });
+    Coach.end();
+    if (await asked === ans) break;
+    NL.resetMarks(); NL.markStart(it.start); await NL.teleport(it.start); // went past it: back to the start and walk again
+  }
+  stage.classList.remove('demo-walk'); endTalk();
 }
 
 async function keyHunt(L, from = 0) {
@@ -1020,9 +1114,14 @@ async function keyHunt(L, from = 0) {
     NL.resetMarks(); Tablet.eq(it.eq);
     if (NL.pos !== it.start) await NL.teleport(it.start); else NL.face(1);
     NL.markStart(it.start);
+    // a solved example: the explorer reasons it out aloud, the player walks him and jumps, then they're on their own
+    if (it.demo) { await solvedExample(it, ans); await keySuccess(L, i, it, ans, false); continue; }
     // the guided first question doesn't wait for the whole question to be read: the controls come up straight away
     const questionVO = voiceOnly('wizard', it.vo); questionVO.catch(() => {});
-    await wait(it.coach ? 1000 : 300); // the controls come up with the equation, while the question is read
+    Tablet.glow(questionVO);
+    // the guided question: only the equation is spotlit while it is read; the arrows come after
+    if (it.coach) await Coach.step($('#tablet'), '', '', { until: () => false, stop: questionVO.then(() => 'stop', () => 'stop'), hand: false });
+    await wait(300); // the controls come up with the equation
     const n = Math.abs(it.delta), submit = lvl.submit || 'JUMP';
     if (!lvl.voOnly) bubble('wizard', lvl.directPrompt
       ? `Start at ${fmt(it.start)} and move ${n} step${n === 1 ? '' : 's'} ${it.delta > 0 ? 'right' : 'left'}. Then press ${submit}.`
@@ -1031,7 +1130,7 @@ async function keyHunt(L, from = 0) {
       const asked = Mover.ask(it.start, {
         idle: () => { speakOnly('wizard', it.idle); Mover.pulse(); NL.hop(); },
       });
-      if (it.coach && tries === 0) await coachKeyMoves(it, ans, asked, questionVO);
+      if (it.coach && tries === 0) await coachKeyMoves(it, ans, asked);
       const v = await asked;
       if (v === ans) break;
       tries++;
@@ -1080,19 +1179,23 @@ async function wrongKey(it, v, tries, ans) {
   if (rung === 2) NL.arrow(it.start, 2, right ? 'Move right' : 'Move left', !right);
   if (rung === 3) {
     const dir = Math.sign(it.delta), c = $('#counter');
+    // the camera shows the start and the answer together when they fit, otherwise it follows the count
+    const fits = Math.abs(it.delta) * STEP <= STAGE_W - 260, mid = it.start + it.delta / 2;
+    if (fits) NL.look(mid);
     for (let k = 1; k <= Math.abs(it.delta); k++) {
+      if (!fits) NL.look(it.start + dir * k);
       const s = NL.stone(it.start + dir * k); s?.classList.add('trail');
       c.style.left = `${NL.x(it.start + dir * k)}px`; c.innerHTML = `<small>Step</small>${k}`; retrigger(c, 'on'); Sound.fx.count(k);
       await wait(RM ? 200 : 380);
     }
     c.classList.remove('on');
-    NL.stone(ans)?.classList.add('pulse');
+    NL.stone(ans)?.classList.add('pulse', 'show'); NL.tag(ans); Sound.fx.sparkle();
   }
   NL.pose('explorer_idle'); NL.face(1);
 }
 
 async function keySuccess(L, i, it, ans, firstTry) {
-  clearAnswerHand(); Mover.hide(); NL.hideArrow(); $('#counter').classList.remove('on');
+  clearAnswerHand(); Mover.hide(); NL.hideArrow(); NL.untag(); $('#counter').classList.remove('on');
   Tablet.solve(ans);
   const s = NL.stone(ans); s.classList.remove('pulse'); s.classList.add('land', 'show', 'correct'); // the answer stone lights up green and stays lit
   { const p = stagePos(s); FX.burst(p.x, p.y, 16, 'star', 6); }
@@ -1115,14 +1218,15 @@ async function keySuccess(L, i, it, ans, firstTry) {
   const p = stagePos(NL.exp); FX.burst(p.x, p.y - 60, 30, 'star', 8);
   toast(it.cele, it.cele.length < 8); FX.confetti(it.size);
   if (firstTry) addGem({ x: p.x, y: p.y - 80 });
-  streakHit(firstTry);
+  if (!it.demo) streakHit(firstTry); // the explorer's own solved example doesn't count for or against the player
   await wait(1000);
   k.classList.remove('on');
   const r = RUN; await fly(KEY_SVG, stagePos(k), HUD.slotPos(i), 800, 70); guard(r);
   HUD.fill(i); Sound.fx.coin();
   NL.pose('explorer_thumbsup');
-  await voiceOnly('wizard', it.found || `Correct! You found it. The explorer reached ${numHTML(ans)}. The key is right here.`);
-  await cont(i < LEVELS[L].keys.length - 1 ? 'Next key' : 'Unlock the map');
+  if (it.demo) { NL.jump(); await talk('explorer', it.demo.done); endTalk(); } // the solved example ends on the explorer handing over
+  else await voiceOnly('wizard', it.found || `Correct! You found it. The explorer reached ${numHTML(ans)}. The key is right here.`);
+  await wait(600); // the next key question, or the map, follows on its own
   NL.pose('explorer_idle');
 }
 
@@ -1206,7 +1310,10 @@ async function mysteries(L, from = 0) {
   else { mapScene(); setRules(L); stage.classList.toggle('map-ui', !!lvl.mapScroll); }
   HUD.seals(lvl.mysteries.length);
   if (art && from === 0 && lvl.mapIntro.some(l => !l.vo)) await castIn();
-  if (from === 0) for (const line of lvl.mapIntro) await (line.vo ? voiceOnly(line.who, line.text) : talk(line.who, line.text)); // vo: an instruction, voice only
+  if (from === 0) for (const line of lvl.mapIntro) { // vo: an instruction, voice only
+    if (line.exp && actors.exp) { actor('exp', { img: line.exp }); actorAnim('exp', 'shake'); } // exp: the explorer's face as the line starts
+    await (line.vo ? voiceOnly(line.who, line.text) : talk(line.who, line.text));
+  }
   if (art) { // the characters from the unlock scene step away before the puzzles start
     castOut();
   }
@@ -1222,12 +1329,14 @@ async function mysteries(L, from = 0) {
       stage.classList.add('map-scroll'); setBg(lvl.bg); Sound.fx.whoosh(); await wait(250);
     }
     Dial.clear(); Tablet.eq(m.eq); $('#hintArrow').classList.remove('on'); $('#miniLine').classList.remove('on');
+    Tablet.glow(wait(2800), true); // the new puzzle's equation glows as long as a key question's does ("The next key is at.")
     const seal = art ? null : MapView.seal(j); seal?.classList.add('active');
     if (!art) actor('exp', { img: 'explorer_idle' });
     // a puzzle without a line of its own: the banner clears and the sign carries the equation
     // the keypad comes up with the equation; the puzzle is read out while the player can already answer
     let puzzleVO = null;
     if (m.vo) { puzzleVO = voiceOnly('wizard', m.vo); puzzleVO.catch(() => {}); } else hideBubble();
+    if (m.coach) await coachPuzzleIntro(m);
     Dial.show();
     while (true) {
       const asked = Dial.ask({
@@ -1343,15 +1452,36 @@ async function unlockArt(L) {
   const UNLOCK = unlockLines(L);
   Tablet.hide(); $('#ruleChip').classList.remove('on');
   const pa = setupPathArt(L); litTo(pa, 0); $('#pathArt').classList.add('faint');
-  ['#scroll', '#pathArt'].forEach(q => { const e = $(q); retrigger(e, 'unroll'); e.addEventListener('animationend', () => e.classList.remove('unroll'), { once: true }); });
-  Sound.fx.creak(); Sound.fx.whoosh(); // the map unrolls
-  await wait(900); Sound.fx.sparkle();
+  if (UNLOCK.explorer || UNLOCK.wizard) stage.classList.add('cast', 'cast-now'); // someone will talk: unroll it already tucked up, no jump later
+  const from = $('#slots').classList.contains('on') ? stagePos($('#slots')) : { x: STAGE_W - 140, y: 60 };
+  ['#scroll', '#pathArt'].forEach(q => {
+    const e = $(q); flyIn(e, from); e.classList.add('late'); retrigger(e, 'unroll');
+    e.addEventListener('animationend', () => e.classList.remove('unroll', 'late'), { once: true });
+  });
+  Sound.fx.whoosh(); // the rolled-up map flies in…
+  await wait(RM ? 300 : 700); Sound.fx.creak(); // …lands and unrolls
+  await wait(900); Sound.fx.sparkle(); stage.classList.remove('cast-now');
   // whoever has a line in the script steps in front of the map and says it; with no lines the map just shows a moment
   const cast = [UNLOCK.explorer && 'exp', UNLOCK.wizard && 'wiz'].filter(Boolean);
   if (!cast.length) { await wait(1600); return; }
   await castIn(cast, UNLOCK.wizard ? 'explorer_idle' : 'explorer_thumbsup');
   if (UNLOCK.wizard) await talk('wizard', UNLOCK.wizard);
   if (UNLOCK.explorer) { actor('exp', { img: 'explorer_thumbsup' }); actorAnim('exp', 'hop'); await talk('explorer', UNLOCK.explorer); }
+}
+
+// el flies in from point `from` (stage px): small and tilted, it lands where it already sits
+function flyIn(el, from, ms = RM ? 300 : 700) {
+  const b = el.getBoundingClientRect(), st = stage.getBoundingClientRect(), cs = getComputedStyle(el);
+  const c = { x: (b.left + b.width / 2 - st.left) / scale, y: (b.top + b.height / 2 - st.top) / scale };
+  const [ox, oy] = cs.transformOrigin.split(' ').map(parseFloat), o = { x: el.offsetLeft + ox, y: el.offsetTop + oy };
+  const s = .12, a = -18 * Math.PI / 180, dx = c.x - o.x, dy = c.y - o.y;
+  // the centre lands on `from`: t = from − o − R·s·(c − o)
+  const tx = from.x - o.x - s * (Math.cos(a) * dx - Math.sin(a) * dy), ty = from.y - o.y - s * (Math.sin(a) * dx + Math.cos(a) * dy);
+  el.animate([
+    { translate: `${tx}px ${ty}px`, scale: `${s}`, rotate: '-18deg', opacity: 0 },
+    { offset: .2, opacity: 1 },
+    { translate: '0px 0px', scale: '1', rotate: '0deg', opacity: 1 },
+  ], { duration: ms, easing: 'cubic-bezier(.3,.9,.35,1.05)' });
 }
 
 // the revealed route as its own illustration: the dashed path glows, a tap sends the explorer along it
@@ -1438,6 +1568,7 @@ async function runEnding() {
 
 /* ---------- chapters ---------- */
 async function goChapter(c, step = 'teach', i = 0) {
+  if (Clock.paused) closeMenu();
   RUN++; resetUI();
   try {
     if (c === 'story') { S.gems = 0; setGems(); await runStory(); c = 0; }
@@ -1458,8 +1589,17 @@ function paintToggles() {
 $('#btnSound').addEventListener('click', () => { Sound.init(); Sound.toggle(); Sound.fx.tap(); paintToggles(); });
 $('#btnVoice').addEventListener('click', () => { Voice.toggle(); Sound.fx.tap(); paintToggles(); });
 $('#btnPause').innerHTML = ICONS.menu;
-$('#btnPause').addEventListener('click', () => { Sound.fx.tap(); Voice.stop(); $('#pause').classList.add('on'); });
-function closeMenu() { $('#pause').classList.remove('on'); }
+$('#btnPause').addEventListener('click', () => { Sound.fx.tap(); pauseGame(); });
+// pause freezes the story or game exactly where it is (timers, animations, the voice, the music); closing the menu carries on
+function pauseGame() {
+  if (Clock.paused) return;
+  Voice.pause(); Sound.hold(true); Clock.pause($('#pause')); stage.classList.add('paused'); $('#pause').classList.add('on');
+}
+function closeMenu() {
+  $('#pause').classList.remove('on');
+  if (!Clock.paused) return;
+  stage.classList.remove('paused'); Clock.resume(); Sound.hold(false); Voice.resume();
+}
 $('#pause').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) { if (e.target.id === 'pause') closeMenu(); return; }
   Sound.fx.tap();
@@ -1468,7 +1608,6 @@ $('#pause').addEventListener('click', e => {
   if (b.dataset.act === 'voice') { Voice.toggle(); paintToggles(); }
   if (b.dataset.go !== undefined) { closeMenu(); goChapter(b.dataset.go); }
 });
-$('#btnAgain').addEventListener('click', () => { Sound.fx.tap(); showTitle(); });
 
 /* ---------- dev buttons (QA, editor) sit at the top right, left of the menu ---------- */
 function devButton(btn) {
@@ -1562,7 +1701,10 @@ const QA = (() => {
 /* ---------- title ---------- */
 /* ---------- cover page ---------- */
 // art from assets/cover_*.webp; the logo and button images also shape their light sweeps
-document.querySelectorAll('#title [data-asset]').forEach(img => { img.src = ASSET(img.dataset.asset); });
+document.querySelectorAll('#title [data-asset]').forEach(img => {
+  img.onerror = () => { img.onerror = null; img.src = `assets/${img.dataset.asset}.png`; }; // some cover art is .png
+  img.src = ASSET(img.dataset.asset);
+});
 document.querySelectorAll('#title .cv-shine').forEach(s => { const img = s.parentElement.querySelector('img'); s.style.setProperty('--mask', `url("${img.src}")`); });
 // floating embers rising out of the tunnel
 $('#title .cv-motes').innerHTML = Array.from({ length: 26 }, (_, i) => {
@@ -1570,6 +1712,7 @@ $('#title .cv-motes').innerHTML = Array.from({ length: 26 }, (_, i) => {
   return `<i style="left:${x.toFixed(0)}px;width:${s.toFixed(1)}px;height:${s.toFixed(1)}px;--drift:${drift.toFixed(0)}px;animation-duration:${d.toFixed(1)}s;animation-delay:${delay.toFixed(1)}s"></i>`;
 }).join('');
 function showTitle() {
+  if (Clock.paused) closeMenu();
   RUN++; resetUI(); setBg('bg_entrance'); QA.at('');
   retrigger($('#title'), 'on'); // replays the entrance each time the cover opens
   coverMusic();
@@ -1605,16 +1748,17 @@ function coverMusic() { coverVoiced = false; Sound.init(); Sound.music(); setTim
 $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.init(); Sound.music(); Sound.fx.fanfare(); $('#title').classList.remove('on'); goChapter('story'); });
 
 /* ---------- optional UI art: used when the file exists, drawn in CSS otherwise ---------- */
-['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text', 'ui_keybox', 'ui_platform_lava', 'chest_open_sheet', 'explorer_run_sheet'].forEach(n => {
+['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text', 'ui_keybox', 'ui_platform_lava', 'chest_open_sheet', 'explorer_run_sheet', 'ui_btn_pause', 'ui_btn_hint'].forEach(n => {
   const img = new Image();
   img.onload = () => { stage.style.setProperty(`--a-${n}`, `url("${img.src}")`); stage.classList.add(`has-${n}`); };
+  img.onerror = () => { if (!img.src.endsWith('.png')) img.src = `assets/${n}.png`; }; // some art is .png
   img.src = ASSET(n);
 });
 
 /* ---------- boot ---------- */
 ['explorer_idle', 'explorer_walk_1', 'explorer_walk_2', 'explorer_jump_key', 'explorer_confused', 'explorer_point', 'explorer_thumbsup', 'explorer_worried', 'explorer_run_back',
  'wizard_laugh', 'wizard_point', 'wizard_explain', 'wizard_proud', 'wizard_hint', 'wizard_avatar', 'explorer_avatar', 'map',
- 'bg_tunnel', 'bg_level1_amber_tunnel', 'bg_level2_shadow_chamber', 'bg_level3_crystal_cavern', 'bg_map_table', 'bg_final_path', 'bg_treasure_chamber']
+ 'bg_tunnel', 'bg_level1_amber_tunnel', 'bg_level2_crystal_spires', 'bg_level3_lava_sea', 'bg_map_table', 'bg_final_path', 'bg_treasure_chamber']
   .forEach(n => { const i = new Image(); i.src = ASSET(n); });
 fit(); paintToggles(); setGems(); showTitle();
 if (document.fonts) document.fonts.ready.then(() => Tablet.fit()); // re-fit once the game font has loaded

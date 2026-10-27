@@ -570,17 +570,17 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #edPanel button:disabled, #edPanel input:disabled { opacity: .45; cursor: default; }
 
 /* Chamber 1, 2 and 3 intro (layout editor exports, 14 Oct 10:21 and 10:48) */
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern.has-ui_controls #dirPick { scale: .724; bottom: 50px; margin-left: -97.7px; }
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern.has-ui_equation_sign #tablet { scale: .878 .884; top: 18.2px; margin-left: -37px; }
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern #tablet > span { display: inline-block; translate: 0 5.7px; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern.has-ui_controls #dirPick { scale: .724; bottom: 50px; margin-left: -97.7px; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern.has-ui_equation_sign #tablet { scale: .878 .884; top: 18.2px; margin-left: -37px; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern #tablet > span { display: inline-block; translate: 0 5.7px; }
 /* key-game equation: centred in the sign by padding (not by nudging each part, which the editor can override) */
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern.has-ui_equation_sign:not(.map-scroll) #tablet:not(.rule) { padding-top: 9px; }
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern.has-ui_equation_sign:not(.map-scroll) #tablet:not(.rule) > span { translate: none !important; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern.has-ui_equation_sign:not(.map-scroll) #tablet:not(.rule) { padding-top: 9px; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern.has-ui_equation_sign:not(.map-scroll) #tablet:not(.rule) > span { translate: none !important; }
 /* equation text: 53px throughout */
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern.has-ui_equation_sign #tablet { font-size: 53px; line-height: 92px; }
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern #slots { scale: .773; right: 171.2px; top: -3.6px; }
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern #btnHelp { translate: -18.2px -8.6px; }
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern #btnPause { translate: -15px -8.1px; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern.has-ui_equation_sign #tablet { font-size: 53px; line-height: 92px; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern #slots { scale: .773; right: 171.2px; top: -3.6px; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern #btnHelp { translate: -18.2px -8.6px; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern #btnPause { translate: -15px -8.1px; }
 
 /* ===================================================================== */
 /* Chamber 1 map puzzles (LEVELS[0].mapScroll, reference 15 Oct)          */
@@ -693,11 +693,11 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
   background: linear-gradient(#5a3a1c, #3a2410); border: 3px solid #e2a84b; box-shadow: inset 0 2px 0 rgba(255,255,255,.2), 0 4px 10px rgba(0,0,0,.45); }
 
 /* Chambers 1–3 intro: the sign drops in on its ropes when there is on-screen text and goes back up when there isn't */
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern #tablet { transform: translate(-50%, -170%); opacity: 0;
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern #tablet { transform: translate(-50%, -170%); opacity: 0;
   transition: transform .55s cubic-bezier(.3,1.35,.5,1), opacity .3s; }
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern #tablet.on { transform: translateX(-50%); opacity: 1; }
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern #tablet.on { transform: translateX(-50%); opacity: 1; }
 /* a sentence on the sign: wraps over a few lines at a readable size */
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"]).theme-cavern.has-ui_equation_sign #tablet.rule { width: 660px; height: auto; min-height: 140px; box-sizing: border-box;
+:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern.has-ui_equation_sign #tablet.rule { width: 660px; height: auto; min-height: 140px; box-sizing: border-box;
   padding: 30px 72px 32px; white-space: normal; font-size: 30px; line-height: 1.28; scale: none; margin-left: 0; top: 14px; }
 
 /* Chambers 1–3 intro and keys: lines are voice only, so no speech box (tap anywhere or Enter continues) */
@@ -836,10 +836,10 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 /* Start: pops in, then breathes with a glow and a light sweep */
 #btnStart.cv-start { left: 458px; top: 486px; width: 364px; padding: 0; border: 0; background: none; cursor: pointer; animation: cvPop .7s 1.35s cubic-bezier(.2,1.7,.4,1) both; }
 #btnStart.cv-start .cv-pulse { position: relative; display: block; animation: cvPulse 1.8s 2.1s ease-in-out infinite; }
-#btnStart.cv-start:hover .cv-pulse { animation-play-state: paused; transform: scale(1.07); filter: brightness(1.08) drop-shadow(0 0 22px rgba(255,200,60,.95)); }
+#btnStart.cv-start:hover .cv-pulse { animation-play-state: paused; transform: scale(1.07); filter: brightness(1.08) drop-shadow(0 0 22px rgba(80,200,255,.95)); }
 #btnStart.cv-start:active .cv-pulse { transform: scale(.95); filter: brightness(.92); }
 #btnStart.cv-start:focus-visible { outline: none; }
-#btnStart.cv-start:focus-visible .cv-pulse { filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 6px #fff) drop-shadow(0 0 18px rgba(255,200,60,.9)); }
+#btnStart.cv-start:focus-visible .cv-pulse { filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 6px #fff) drop-shadow(0 0 18px rgba(80,200,255,.9)); }
 #btnStart.cv-start .cv-shine { animation-delay: 2.6s; animation-duration: 3.2s; }
 
 @keyframes cvFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -858,7 +858,7 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 @keyframes cvBreathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, .985) translateY(1px); } }
 @keyframes cvSway { 0%, 100% { transform: rotate(-1.6deg); } 50% { transform: rotate(1.6deg) translateY(-4px); } }
 @keyframes cvPop { 0% { transform: scale(.2); opacity: 0; } 100% { transform: none; opacity: 1; } }
-@keyframes cvPulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(255,190,50,.5)); } 50% { transform: scale(1.055); filter: drop-shadow(0 0 22px rgba(255,200,60,.95)); } }
+@keyframes cvPulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(70,190,255,.5)); } 50% { transform: scale(1.055); filter: drop-shadow(0 0 22px rgba(80,200,255,.95)); } }
 @media (prefers-reduced-motion: reduce) { #title.cover *, #title.cover *::before, #title.cover *::after { animation: none !important; } .cv-motes { display: none; } }
 
 /* QA panel: music volume */
@@ -1001,7 +1001,7 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #stage.path-art #scroll, #stage.unlock-scroll #scroll, #stage.path-art #pathArt { transition: transform .5s cubic-bezier(.3,1.2,.4,1), opacity .45s; }
 /* the map unrolls from the middle when it first appears */
 #scroll.unroll { animation: scrollUnroll .9s cubic-bezier(.3,1.1,.4,1); }
-#pathArt.unroll { animation: mapInkIn .6s .55s ease-out backwards; }
+#pathArt.unroll { animation: scrollUnroll .9s cubic-bezier(.3,1.1,.4,1); } /* the map unrolls with its scroll */
 @keyframes scrollUnroll { 0% { clip-path: inset(0 47% 0 47%); } 100% { clip-path: inset(0 0 0 0); } }
 @keyframes mapInkIn { from { opacity: 0; filter: blur(6px); } }
 #stage.cast #slots { opacity: 0; transition: opacity .3s; } /* the tucked map sits where the key bar is, so the bar steps out while the characters talk */
@@ -1047,3 +1047,59 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #nl .stone:has(.answer-hand) { z-index: 8; } /* the hand sits above the hint arrow */
 #nl .stone .answer-hand { top: 18%; }
 #nl .stone .answer-hand b { font-size: 76px; }
+#stage.cast-now #scroll, #stage.cast-now #pathArt { transition: none !important; } /* unroll in place, no slide */
+
+/* pause and ? buttons: the round purple-and-gold art (the drawn icon shows if the art is missing) */
+#stage.has-ui_btn_pause #btnPause, #stage.has-ui_btn_hint #btnHelp { border: 0; background: none; box-shadow: none; color: transparent; font-size: 0; filter: drop-shadow(0 3px 5px rgba(0,0,0,.45)); }
+#stage.has-ui_btn_pause #btnPause { background: var(--a-ui_btn_pause) center / 100% 100% no-repeat; }
+#stage.has-ui_btn_hint #btnHelp { background: var(--a-ui_btn_hint) center / 100% 100% no-repeat; }
+#stage.has-ui_btn_pause #btnPause svg { display: none; }
+#stage #btnPause, #stage #btnHelp { width: 54px; height: 54px; }
+#stage.theme-cavern .hud-right #btnPause, #stage.theme-cavern .hud-right #btnHelp { width: 48px; height: 48px; }
+#stage.has-ui_btn_hint #btnHelp.active { background-color: transparent; filter: drop-shadow(0 0 10px rgba(255,213,74,.95)) brightness(1.12); }
+#btnPause:hover, #btnHelp:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.45)) brightness(1.1); }
+/* the pause button stays on screen through the whole story and game (the cover hides it) */
+#stage:not(.theme-cavern) .hud-right { display: flex; }
+#stage:not(.theme-cavern) .hud-right > :not(#btnPause) { display: none; }
+
+/* the equation glows while "The next key is at…" is spoken */
+#tablet.eq-hl { animation: eqGlow 1s ease-in-out infinite; }
+@keyframes eqGlow { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255,224,102,.6)); } 50% { filter: drop-shadow(0 0 20px #ffe066) drop-shadow(0 0 8px #fff3a8); } } /* glow only: the panel keeps its size */
+/* a tutorial step can be a spotlight with no hand */
+#coach.no-hand .co-hand { display: none; }
+/* the 3rd-miss hint: a gold tag with the answer's number bobs over its stone */
+.answer-tag { position: absolute; top: -92px; z-index: 6; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 6px 16px 6px 10px; border-radius: 30px; pointer-events: none;
+  background: linear-gradient(#fff3a8, #ffc83a); border: 4px solid #fff; box-shadow: 0 5px 0 #b06d00, 0 0 24px rgba(255,213,74,.9); font: 40px/1 'Lilita One', sans-serif; color: #5a2d00; opacity: 0; }
+.answer-tag i { display: block; width: 34px; height: 34px; } .answer-tag i svg { width: 100%; height: 100%; }
+.answer-tag.on { opacity: 1; animation: tagIn .45s cubic-bezier(.2,1.6,.4,1), tagBob 1.2s .45s ease-in-out infinite; }
+@keyframes tagIn { from { scale: .3; opacity: 0; } }
+@keyframes tagBob { 50% { translate: 0 -8px; } }
+/* the map flies in rolled up, then unrolls once it lands */
+#scroll.unroll.late, #pathArt.unroll.late { animation-delay: .65s; animation-fill-mode: backwards; }
+/* on the parchment the gold glow is lost: map puzzles glow violet with a white rim */
+#tablet.eq-hl.eq-map { animation-name: eqGlowMap; }
+@keyframes eqGlowMap { 0%, 100% { filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 14px #7b2cff) drop-shadow(0 0 6px #7b2cff); } 50% { filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 30px #6a1bff) drop-shadow(0 0 14px #9b5cff); } }
+
+/* Chamber 3's solved example (solvedExample in game.js): what the explorer is talking about glows gold,
+   he leans and turns on his stone, a small orange arrow shows the way he means to go */
+#tablet .tok.demo-hl, #tablet .sign.demo-hl { outline: 3px solid #FFD54A; outline-offset: 3px; border-radius: 8px; box-shadow: 0 0 16px rgba(255,213,74,.85); }
+#tablet .sign { font-weight: inherit; display: inline-block; }
+#tablet .sign.demo-hl { color: #FFD54A; animation: tokPulse .9s ease-in-out 2; }
+#stage #dirPick .mv.demo-hl { animation: demoBtn 1s ease-in-out infinite; }
+@keyframes demoBtn { 50% { filter: brightness(1.15) drop-shadow(0 0 14px rgba(255,213,74,1)); } }
+#dirPick.demo { pointer-events: none; }
+#nlExp .bob { rotate: 0deg; transition: rotate .45s ease-in-out; }
+#nlExp .bob.lean { rotate: 6deg; } /* leans the way he faces */
+#nlExp.flip .bob.lean { rotate: -6deg; }
+#nlExp .bob.think { animation: think 1.4s ease-in-out; }
+@keyframes think { 25% { rotate: -5deg; } 60% { rotate: 4deg; } }
+#nlExp .bob.turning { animation: turnBody .38s ease-in-out; }
+@keyframes turnBody { 50% { scale: .15 1; } }
+.demo-dir { position: absolute; width: 84px; height: 48px; margin-left: -42px; opacity: 0; transform: scale(.4); rotate: 0deg; pointer-events: none;
+  transition: opacity .3s, transform .35s cubic-bezier(.3,1.5,.5,1), rotate .6s ease-in-out, left .6s ease-in-out; filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 12px rgba(255,120,0,.95)); z-index: 3; }
+.demo-dir.on { opacity: 1; transform: none; }
+.demo-dir.back { rotate: 180deg; }
+.demo-dir svg { width: 100%; height: 100%; display: block; }
+#stage.demo-walk #nl .stone.trail { filter: drop-shadow(0 0 10px rgba(255,213,74,.95)); }
+#stage.demo-walk #nl .stone.trail .lbl { background: linear-gradient(#fff6c8, #ffd760); border-color: #d48a10; box-shadow: inset 0 0 0 3px #f2a922; }
+
