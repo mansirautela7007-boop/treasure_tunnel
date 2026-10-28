@@ -38,7 +38,7 @@ const Clock = (() => {
 const Sound = (() => {
   let ctx = null, master, sfx, amb, mus, on = true, ambTimer = null, drone = null, music = null, musicWanted = false, ducked = false, held = false;
   const MUSIC_DEFAULT = 0.2, DUCK = 0.4; // music sits under the voice; it dips further while a line is spoken
-  let musicVol = MUSIC_DEFAULT, musicMuted = false; // the QA panel's slider can change the volume; the music button mutes it
+  let musicVol = MUSIC_DEFAULT; // the QA panel's slider can change the volume
 
   function init() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
@@ -136,7 +136,7 @@ const Sound = (() => {
   /* background music: "Treasure Hunter" by TAD (CC0, opengameart.org/content/treasure-hunter), assets/audio/bgm_treasure_hunter.m4a.
      Played through Web Audio so the loop has no gap; the silence the encoder adds at each end is trimmed off. */
   const MUSIC_SRC = () => (window.AUDIO && window.AUDIO.bgm_treasure_hunter) || 'assets/audio/bgm_treasure_hunter.m4a';
-  function musicLevel(t = 0.6) { if (ctx && mus) mus.gain.setTargetAtTime(on && musicWanted && !musicMuted && !held ? musicVol * (ducked ? DUCK : 1) : 0, ctx.currentTime, t); }
+  function musicLevel(t = 0.6) { if (ctx && mus) mus.gain.setTargetAtTime(on && musicWanted && !held ? musicVol * (ducked ? DUCK : 1) : 0, ctx.currentTime, t); }
   async function startMusic() {
     musicWanted = true;
     if (!ctx) return; // starts once sound is unlocked by the first tap
@@ -169,8 +169,6 @@ const Sound = (() => {
     get musicVolume() { return musicVol; },
     set musicVolume(v) { musicVol = Math.max(0, Math.min(1, v)); musicLevel(0.05); },
     MUSIC_DEFAULT,
-    get musicMuted() { return musicMuted; },
-    set musicMuted(m) { musicMuted = !!m; musicLevel(0.25); },
     fx: new Proxy(fx, { get: (o, k) => (...a) => { try { o[k](...a); } catch (e) {} } }),
     get on() { return on; },
     toggle() { on = !on; if (ctx) amb.gain.setTargetAtTime(on && !held ? 0.5 : 0, ctx.currentTime, 0.3); musicLevel(0.3); return on; },

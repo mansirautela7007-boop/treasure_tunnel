@@ -48,7 +48,6 @@ function badgeSVG(b) {
 
 // hidden key box: a wooden crate with gold corners and a glowing "?"
 const KEYBOX_SVG = `<svg viewBox="0 0 100 100"><defs><linearGradient id="kbw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98a4a"/><stop offset="1" stop-color="#8a4e1e"/></linearGradient></defs><rect x="6" y="8" width="88" height="86" rx="10" fill="url(#kbw)" stroke="#4a2408" stroke-width="5"/><path d="M8 36 H92 M8 66 H92" stroke="#6b3a12" stroke-width="4" opacity=".55"/><g fill="#ffd54a" stroke="#7a4a00" stroke-width="3"><path d="M6 20 V14 a6 6 0 0 1 6 -6 H24 V20 Z"/><path d="M94 20 V14 a6 6 0 0 0 -6 -6 H76 V20 Z"/><path d="M6 82 V88 a6 6 0 0 0 6 6 H24 V82 Z"/><path d="M94 82 V88 a6 6 0 0 1 -6 6 H76 V82 Z"/></g><text class="q" x="50" y="68" text-anchor="middle" font-family="Lilita One, sans-serif" font-size="50" fill="#ffe680" stroke="#5a2e00" stroke-width="3">?</text><circle class="hole" cx="50" cy="52" r="15" fill="#2a1404" opacity="0"/></svg>`;
-const CHEST_SVG = `<svg viewBox="0 0 300 260" overflow="visible"><g class="burst">${Array.from({ length: 12 }, (_, i) => `<path d="M150 140 L${150 + 230 * Math.cos(i * Math.PI / 6 - .1)} ${140 + 230 * Math.sin(i * Math.PI / 6 - .1)} L${150 + 230 * Math.cos(i * Math.PI / 6 + .1)} ${140 + 230 * Math.sin(i * Math.PI / 6 + .1)} Z" fill="rgba(255,225,120,.35)"/>`).join('')}</g><ellipse cx="150" cy="250" rx="130" ry="12" fill="rgba(0,0,0,.4)"/><rect x="30" y="130" width="240" height="118" rx="14" fill="#8b4513" stroke="#3a1a00" stroke-width="7"/><rect x="30" y="160" width="240" height="14" fill="#e8a92a" stroke="#3a1a00" stroke-width="4"/><rect x="58" y="130" width="22" height="118" fill="#e8a92a" stroke="#3a1a00" stroke-width="4"/><rect x="220" y="130" width="22" height="118" fill="#e8a92a" stroke="#3a1a00" stroke-width="4"/><g class="coins"><circle cx="110" cy="128" r="16" fill="#ffd54a" stroke="#a86a0a" stroke-width="4"/><circle cx="150" cy="120" r="18" fill="#ffe27a" stroke="#a86a0a" stroke-width="4"/><circle cx="190" cy="128" r="16" fill="#ffd54a" stroke="#a86a0a" stroke-width="4"/><polygon points="128,110 140,96 152,110 140,126" fill="#ff4d6d" stroke="#7a0020" stroke-width="3"/><polygon points="166,112 176,100 186,112 176,124" fill="#4fc3ff" stroke="#0b4f7a" stroke-width="3"/></g><g class="lid"><path d="M30 132 V96 Q150 18 270 96 V132 Z" fill="#a0522d" stroke="#3a1a00" stroke-width="7" stroke-linejoin="round"/><path d="M58 128 V86 M242 128 V86" stroke="#e8a92a" stroke-width="20"/><path d="M58 128 V86 M242 128 V86" stroke="#3a1a00" stroke-width="4" opacity=".4"/><rect x="132" y="112" width="36" height="38" rx="6" fill="#ffd54a" stroke="#3a1a00" stroke-width="5"/><circle cx="150" cy="128" r="6" fill="#3a1a00"/></g></svg>`;
 
 /* ---------- map geometry (map image is 1200 × 800) ---------- */
 const MAP = {
@@ -189,9 +188,7 @@ function bubble(who, text, mode = 'bottom', speak = true, clip = null, cues = nu
   lastLine = { who, text, clip };
   return speak ? Voice.say(text, who, clip, cues) : Promise.resolve();
 }
-async function say(who, text, mode = 'bottom') { const r = RUN; await bubble(who, text, mode); guard(r); }
-function bubbleText(text) { $('#bubble .txt').innerHTML = text; }
-function hideBubble() { $('#bubble').classList.remove('on', 'pop', 'has-next'); } // keeps its look while it fades out
+function hideBubble() { $('#bubble').classList.remove('on', 'pop'); } // keeps its look while it fades out
 // game lines are spoken only, never shown on screen (the script's on-screen text goes on the sign)
 // narration: the narrator and the game's instructions are voice only (no box), in the narrator's voice
 function speakOnly(who, text) { hideBubble(); if (!text) return Promise.resolve(); lastLine = { who: 'narrator', text }; return Voice.say(text, 'narrator'); }
@@ -268,7 +265,7 @@ const MAP_TUCKED = { x: 281, y: 20, w: 725, h: 432 };
 function showTalk(who, text, cues = null) {
   const b = $('#bubble'), txt = b.querySelector('.txt'), r = RUN;
   Voice.stop(); if (typing) { clearInterval(typing.t); typing.done(); }
-  const spoken = Voice.say(text, who, (typeof CHARACTER_VO !== 'undefined' && CHARACTER_VO[`${who}|${text}`]) || null, cues); // cues fire as the voice says the word // the character speaks the line: their recorded clip, else the browser's voice
+  const spoken = Voice.say(text, who, null, cues); // the character speaks the line: their recording (RECORDED_VO), else the browser's voice; cues fire as the voice says the word
   if (!b.querySelector('.tail')) b.insertAdjacentHTML('beforeend', TAIL_SVG);
   b.className = `on comic ${who}`;
   b.querySelector('.av').src = who === 'wizard' ? ASSET('wizard_avatar') : who === 'explorer' ? ASSET('explorer_avatar') : NARRATOR_AV;
@@ -316,17 +313,7 @@ function toggleRules(open = !$('#rulesDrop').classList.contains('on')) {
 }
 
 /* ---------- waiting for the player ---------- */
-let pending = { next: null, cont: null, dial: null, dir: null, tapTarget: null };
-function nextTap() {
-  const r = RUN;
-  $('#bubble').classList.add('has-next');
-  return new Promise(res => { pending.next = res; }).then(() => {
-    $('#bubble').classList.remove('has-next'); $('#tapHint').style.opacity = 0; Voice.stop(); guard(r);
-  });
-}
-function fireNext() { if (pending.next) { const f = pending.next; pending.next = null; Sound.fx.tap(); f(); } }
-$('#btnNext').addEventListener('click', e => { e.stopPropagation(); fireNext(); });
-// no tap-anywhere: lines move on with a Next button only
+let pending = { cont: null, dial: null, dir: null, tapTarget: null };
 
 function cont(label = 'Continue', corner = false) {
   const r = RUN, b = $('#btnContinue');
@@ -495,7 +482,6 @@ const NL = {
     t.style.left = `${this.x(v)}px`; t.innerHTML = `<i>${KEY_SVG}</i>${fmt(v)}`; retrigger(t, 'on');
   },
   untag() { $('#answerTag')?.remove(); },
-  screenX(v) { const m = /translateX\((-?[\d.]+)px\)/.exec($('#nl').style.transform); return this.x(v) + (m ? +m[1] : 0); },
   async walk(from, delta, { count = true, trail = true, stepMs = RM ? 260 : 480 } = {}) {
     const dir = Math.sign(delta); if (!dir) return;
     this.face(dir); this.setStepMs(stepMs);
@@ -523,7 +509,6 @@ const NL = {
     await wait(350);
   },
   markStart(v) { const s = this.stone(v); if (s) s.classList.add('show', 'start'); },
-  showLabel(v) { this.stone(v)?.classList.add('show'); },
   resetMarks() {
     document.querySelectorAll('#nl .stone').forEach(s => {
       s.classList.remove('trail', 'land', 'miss', 'pulse', 'start', 'correct');
@@ -680,7 +665,6 @@ addEventListener('keydown', e => {
   }
   if (e.key === 'Enter' || e.key === ' ') {
     if (pending.coach) { e.preventDefault(); pending.coach(); }
-    else if (pending.next) { e.preventDefault(); fireNext(); }
     else if (pending.cont) { e.preventDefault(); $('#btnContinue').click(); }
     else if (pending.tapTarget) { e.preventDefault(); pending.tapTarget(); }
   }
@@ -742,16 +726,16 @@ const MapView = {
 /* ---------- reset everything between chapters ---------- */
 function resetUI() {
   Voice.stop(); Coach.end(); clearAnswerHand();
-  pending = { next: null, cont: null, dial: null, dir: null, tapTarget: null };
+  pending = { cont: null, dial: null, dir: null, tapTarget: null };
   Mover.hide();
   hideBubble(); Tablet.hide(); Dial.hide(); Dial.clear();
   ['#dirPick', '#btnContinue', '#demo', '#miniLine', '#hintArrow', '#ruleChip', '#flare'].forEach(s => $(s).classList.remove('on'));
-  $('#toast').classList.remove('on'); $('#tapHint').style.opacity = 0;
+  $('#toast').classList.remove('on');
   clearActors(); clearProps(); $('#nlWrap').classList.remove('on'); $('#nl').innerHTML = '';
   MapView.hide(); HUD.hide();
   document.querySelectorAll('.fly, .puff, .poofcloud').forEach(e => e.remove());
   ['#badgeModal', '#final', '#title'].forEach(s => $(s).classList.remove('on'));
-  S.streak = 0; stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll', 'path-art', 'unlock-scroll', 'playing', 'stones-lava', 'cast', 'cast-now', 'tap-stones'); toggleRules(false); $('#scroll').classList.remove('unroll'); $('#pathArt').classList.remove('unroll');
+  S.streak = 0; stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll', 'path-art', 'unlock-scroll', 'playing', 'stones-lava', 'cast', 'cast-now'); toggleRules(false); $('#scroll').classList.remove('unroll'); $('#pathArt').classList.remove('unroll');
   $('#pathArt').classList.remove('glow', 'faint'); $('#pathArt .pa-hand')?.classList.remove('on'); $('#pathArt .pa-token').classList.remove('on'); $('#pathArt .pa-lit').setAttribute('d', '');
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
@@ -759,14 +743,6 @@ function resetUI() {
 /* ===================================================================== */
 /*                               STORY                                    */
 /* ===================================================================== */
-function mapScrap(x, y, w, rot, piece) {
-  const offs = [[0, 0], [-170, -40], [-340, -110]];
-  const p = prop('scrap', { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${w * .68}px`, backgroundImage: `url(${ASSET('map')})`,
-    backgroundSize: `${w * 3}px ${w * 2}px`, backgroundPosition: `${offs[piece][0] * w / 170}px ${offs[piece][1] * w / 170}px`,
-    clipPath: 'polygon(4% 8%, 30% 0, 52% 6%, 78% 0, 100% 10%, 95% 40%, 100% 70%, 92% 100%, 60% 94%, 34% 100%, 8% 92%, 0 60%, 6% 34%)', transform: `rotate(${rot}deg)` });
-  p.style.setProperty('--r2', `${rot + 3}deg`);
-  return p;
-}
 
 // the treasure chest (assets/chest_open_sheet.webp: 36 frames in a 6 × 6 grid, closed → open → glowing)
 function chestSprite() { const c = prop('chestsprite', { left: '440px', top: '86px' }); c.id = 'chest'; chestFrame(c, 0); return c; }
@@ -1609,7 +1585,7 @@ $('#pause').addEventListener('click', e => {
   if (b.dataset.go !== undefined) { closeMenu(); goChapter(b.dataset.go); }
 });
 
-/* ---------- dev buttons (QA, editor) sit at the top right, left of the menu ---------- */
+/* ---------- dev buttons (the QA panel's) sit at the bottom left ---------- */
 function devButton(btn) {
   let d = $('#devBtns');
   if (!d) { d = document.createElement('div'); d.id = 'devBtns'; stage.appendChild(d); }
@@ -1687,7 +1663,6 @@ const QA = (() => {
         String(Math.abs(ans)).split('').forEach(d => Dial.key(d)); Dial.key('go'); return;
       }
       if (pending.coach) { pending.coach(); return; }
-      if (pending.next) { fireNext(); return; }
       if (pending.cont) { $('#btnContinue').click(); return; }
       if (pending.tapTarget) { pending.tapTarget(); return; }
       if ($('#badgeModal').classList.contains('on')) { $('#btnBadge').click(); return; }
@@ -1722,26 +1697,12 @@ function showTitle() {
 const startMusic = () => { Sound.init(); Sound.music(); coverVoice(); removeEventListener('pointerdown', startMusic, true); removeEventListener('keydown', startMusic, true); };
 addEventListener('pointerdown', startMusic, true); addEventListener('keydown', startMusic, true);
 // the cover tries to play music straight away; if the browser holds it back, a hint asks for a tap
-// music button, bottom left: mutes or unmutes only the music (voice and sound effects keep playing)
-const MUSIC_ICON = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.2l10-2.2v12.3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><ellipse cx="6.5" cy="17.6" rx="3" ry="2.4" fill="currentColor"/><ellipse cx="16.5" cy="15.4" rx="3" ry="2.4" fill="currentColor"/>${on ? '' : '<path d="M3 3l18 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'}</svg>`;
-function paintMusicBtn() {
-  const b = $('#btnMusic'), m = Sound.musicMuted;
-  b.innerHTML = MUSIC_ICON(!m); b.classList.toggle('muted', m);
-  b.setAttribute('aria-label', m ? 'Turn music on' : 'Turn music off'); b.title = m ? 'Music off' : 'Music on';
-}
-try { Sound.musicMuted = localStorage.getItem('tt-music-muted') === '1'; } catch (e) {}
-paintMusicBtn();
-$('#btnMusic').addEventListener('click', e => {
-  e.stopPropagation(); $('#btnMusic').blur();
-  Sound.init(); Sound.music(); Sound.musicMuted = !Sound.musicMuted; paintMusicBtn(); Sound.fx.tap();
-  try { localStorage.setItem('tt-music-muted', Sound.musicMuted ? '1' : '0'); } catch (e2) {}
-});
 // the cover starts the music and says the game's name as soon as it opens (browsers that block sound until
 // the first interaction get both on the first tap or key instead)
 let coverVoiced = false;
 function coverVoice() {
   if (coverVoiced || !$('#title').classList.contains('on') || !Sound.running) return;
-  coverVoiced = true; setTimeout(() => { if ($('#title').classList.contains('on')) Voice.say('Treasure Tunnel!', 'narrator'); }, 900);
+  coverVoiced = true; setTimeout(() => { if ($('#title').classList.contains('on')) Voice.say('Treasure Tunnel!', 'narrator', 'vo_title'); }, 900);
 }
 document.addEventListener('tt-sound', coverVoice);
 function coverMusic() { coverVoiced = false; Sound.init(); Sound.music(); setTimeout(coverVoice, 300); }

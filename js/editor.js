@@ -236,10 +236,6 @@ const layer = document.createElement('div'); layer.id = 'edLayer';
 layer.innerHTML = `<div id="edHover"></div><div id="edItems"></div><div id="edMarq"></div><div id="edSel"><div class="ed-tag"></div><div class="ed-rot" data-h="rot"></div>${['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map(h => `<div class="ed-h ${h}" data-h="${h}"></div>`).join('')}</div>`;
 stage.appendChild(layer);
 
-const btn = document.createElement('button');
-btn.id = 'edBtn'; btn.setAttribute('aria-label', 'Layout editor'); btn.title = 'Layout editor (E)'; btn.textContent = '✎';
-btn.addEventListener('click', () => toggle());
-if (window.__tt && window.__tt.devButton) window.__tt.devButton(btn); else stage.appendChild(btn);
 
 const num = (f, label, step = 1) => `<label>${label}<input type="number" step="${step}" data-f="${f}"></label>`;
 const panel = document.createElement('aside');
@@ -268,7 +264,7 @@ document.body.appendChild(panel);
 
 function toggle(force) {
   on = force === undefined ? !on : force;
-  btn.classList.toggle('active', on); panel.classList.toggle('on', on); layer.classList.toggle('on', on);
+  panel.classList.toggle('on', on); layer.classList.toggle('on', on);
   stage.classList.toggle('ed-freeze', on && freeze);
   if (on) { try { speechSynthesis.cancel(); } catch (e) {} loop(); } else { select(null); hover(null); }
   paint();

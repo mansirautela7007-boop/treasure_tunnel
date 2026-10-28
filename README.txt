@@ -7,9 +7,9 @@ FILES
 index.html        Page structure
 css/style.css     All styles and micro-animations
 js/data.js        Every line of story and game script, levels and puzzles (edit text here)
-js/audio.js       Sound effects (made in the browser, no audio files) and voice (browser speech)
+js/audio.js       Sound effects (made in the browser), music and voice-over playback
 js/game.js        Game engine: story scenes, number line, keys, map mysteries, effects
-assets/           Your images, compressed to WebP
+assets/           Your images (WebP); assets/audio holds the music and voice-over clips
 
 EDITING
 - Change dialogue, equations or hints in js/data.js. answer = start + delta.
@@ -24,5 +24,5 @@ EDITING
 - Keyboard: digits, '-' for negative, Backspace, Enter = GO, arrows for direction, Enter/Space = next.
 
 NOTES
-- The voice uses the browser's built-in speech, so it sounds different on each device.
+- Every line has a recorded voice-over (RECORDED_VO in js/data.js); a line without one falls back to the browser's speech.
 - Fonts (Lilita One, Baloo 2) load from Google Fonts; without internet a fallback font is used.
