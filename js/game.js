@@ -212,11 +212,19 @@ function stageRect(el) {
 }
 // try spots around the speaker (above, beside) at two widths; take the first that stays on screen and clear of the
 // sign, the other character, the controls and the top buttons, else the one that covers least
+// the narrowest width (up to max) that keeps the text on as few lines as at max, so the bubble hugs its line;
+// never narrower than the name tag and the star on the top edge need
+function fitTalk(b, max) {
+  const tag = b.querySelector('.who'), min = Math.min(max, Math.max(200, tag.offsetLeft + tag.offsetWidth + 80));
+  b.style.width = `${max}px`; const h = b.offsetHeight; let lo = min, hi = max;
+  while (hi - lo > 2) { const mid = (lo + hi) >> 1; b.style.width = `${mid}px`; if (b.offsetHeight > h) lo = mid; else hi = mid; }
+  b.style.width = `${hi}px`; return hi;
+}
 function placeTalk(b, who) {
   const r = speakerRect(who), tail = b.querySelector('.tail');
   b.classList.remove('tail-down', 'tail-left', 'tail-right', 'solo');
   Object.assign(b.style, { left: '', top: '', width: '', marginLeft: '' });
-  if (!r) { b.classList.add('solo'); return; } // nobody on screen: a bubble at the bottom with the speaker's portrait
+  if (!r) { b.classList.add('solo'); b.style.marginLeft = `${-fitTalk(b, 860) / 2}px`; return; } // nobody on screen: a bubble at the bottom with the speaker's portrait
   // a bubble beside the speaker: its tail (57px) ends just clear of the body; the small explorer on the number line needs more room
   const gap = !actors[who === 'wizard' ? 'wiz' : 'exp'] ? 50 : 40;
   const cx = r.x + r.w / 2, head = r.y + r.h * .1, top = r.y + r.h * .02; // top: the tip of the hat
@@ -231,8 +239,8 @@ function placeTalk(b, who) {
   const overlap = q => avoid.reduce((s, a) => s + Math.max(0, Math.min(q.x + q.w, a.x + a.w) - Math.max(q.x, a.x)) * Math.max(0, Math.min(q.y + q.h, a.y + a.h) - Math.max(q.y, a.y)), 0);
   const away = other ? (other.x + other.w / 2 > cx ? 'left' : 'right') : (cx > 640 ? 'left' : 'right');
   let best = null;
-  for (const w of [430, 340]) {
-    b.style.width = `${w}px`; const h = b.offsetHeight;
+  for (const max of [430, 340]) {
+    const w = fitTalk(b, max), h = b.offsetHeight;
     const above = { x: cx - w / 2, y: top - 62 - h, tail: 'down' }; // the tail (about 55px) ends just above the hat
     const cands = [above, { ...above, x: r.x + r.w * .55 - w * .2 }, { ...above, x: r.x + r.w * .45 - w * .8 },
       { x: away === 'left' ? r.x + r.w * .15 - gap - w : r.x + r.w * .85 + gap, y: head + 10, tail: away === 'left' ? 'right' : 'left' },
