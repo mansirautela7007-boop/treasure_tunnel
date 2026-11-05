@@ -13,6 +13,7 @@ assets/           Your images (WebP); assets/audio holds the music and voice-ove
 
 EDITING
 - Change dialogue, equations or hints in js/data.js. answer = start + delta.
+- Sign rules card (before each chamber's keys, and again after a 4th wrong try): signRules in each level in js/data.js.
 - Menu button (top right) lets you jump to any chapter for testing.
 - QA panel: tap the QA button (top right) or press Q to jump to any step of any chamber
   (intro, each key, map unlock, each map puzzle, path reveal, badge). Auto-solve (or N) answers

@@ -4,7 +4,7 @@
 
 const $ = s => document.querySelector(s);
 // art is .webp unless listed here (the single-file build embeds every format under its name)
-const ASSET_EXT = { cover_start: 'png', ui_btn_pause: 'png', ui_btn_hint: 'png', bg_level3_lava_sea: 'jpg', bg_level2_crystal_spires: 'jpg' };
+const ASSET_EXT = { cover_start: 'png', ui_btn_pause: 'png', ui_btn_back: 'png', bg_level3_lava_sea: 'jpg', bg_level2_crystal_spires: 'jpg' };
 const ASSET = n => (window.ASSETS && window.ASSETS[n]) || `assets/${n}.${ASSET_EXT[n] || 'webp'}`;
 const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let STEP = 112; // stone spacing, set per level in NL.build
@@ -27,6 +27,7 @@ const ICONS = {
   soundOff: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="#fff"/><path d="M17 9l5 6M22 9l-5 6"/></svg>`,
   voice: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4z" fill="rgba(255,255,255,.2)"/><path d="M8 9h8M8 12h5"/></svg>`,
   menu: `<svg viewBox="0 0 24 24" fill="#fff"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>`,
+  back: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5l-7 7 7 7M4 12h16"/></svg>`,
   replay: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>`,
 };
 const NARRATOR_AV = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#f6c84c"/><circle cx="50" cy="50" r="36" fill="#fff4cf" stroke="#8b4a12" stroke-width="5"/><polygon points="50,20 58,50 50,80 42,50" fill="#c0392b"/><polygon points="50,50 58,50 50,80 42,50" fill="#3b2412"/><circle cx="50" cy="50" r="5" fill="#8b4a12"/></svg>`);
@@ -230,7 +231,7 @@ function placeTalk(b, who) {
   const cx = r.x + r.w / 2, head = r.y + r.h * .1, top = r.y + r.h * .02; // top: the tip of the hat
   const other = speakerRect(who === 'wizard' ? 'explorer' : 'wizard');
   // things a bubble mustn't cover (only the top bar's buttons, not its empty width)
-  const avoid = ['#tablet.on', '#dirPick.on', '#tray.on', '#btnPause', '#btnHelp', '#slots.on'].map(q => $(q)).filter(e => e && e.offsetParent).map(stageRect)
+  const avoid = ['#tablet.on', '#dirPick.on', '#tray.on', '#btnPause', '#slots.on'].map(q => $(q)).filter(e => e && e.offsetParent).map(stageRect)
     .concat(stage.classList.contains('cast') ? [MAP_TUCKED, MAP_TUCKED] : []) // the map counts double: never cover it
     .concat([...document.querySelectorAll('#nl .nl-arrow, #nl .nl-arrow .lab')].map(stageRect)) // the direction arrows and their labels
     .concat($('#demoDir') && NL.exp ? [(e => ({ x: e.x - 150, y: e.y + e.h * .3, w: e.w + 300, h: 60 }))(stageRect(NL.exp))] : []) // the solved example's arrow, on either side of the explorer
@@ -298,27 +299,8 @@ async function talk(who, text, cues = null) { await showTalk(who, text, cues); }
 function endTalk() { if ($('#bubble').classList.contains('comic')) hideBubble(); }
 $('#btnReplay').innerHTML = ICONS.replay;
 $('#btnReplay').addEventListener('click', e => { e.stopPropagation(); Sound.fx.tap(); Voice.say(lastLine.text, lastLine.who, lastLine.clip); });
-$('#btnHelp').addEventListener('click', e => {
-  e.stopPropagation(); Sound.fx.tap();
-  if (LEVELS[S.level] && LEVELS[S.level].helpRules) { toggleRules(); return; }
-  retrigger($('#bubble'), 'pop'); Voice.say(lastLine.text, lastLine.who, lastLine.clip);
-});
-// the ? button belongs to the game part (key hunt, map puzzles) only
-function setPlaying(on) { stage.classList.toggle('playing', on); if (!on) toggleRules(false); }
-// ? opens a dropdown of every direction rule under the button; × closes it
-function toggleRules(open = !$('#rulesDrop').classList.contains('on')) {
-  const d = $('#rulesDrop'), b = $('#btnHelp');
-  if (open) {
-    // only the rules taught so far: this chamber's and the ones before it
-    d.innerHTML = LEVELS.slice(0, S.level + 1).flatMap(l => l.rule).map(([s, w, dir]) => `<div class="rc"><b>${s}</b> ${w} → ${dir === 'left' ? '◀ left' : 'right ▶'}</div>`).join('');
-    const r = b.getBoundingClientRect(), st = stage.getBoundingClientRect(), k = st.width / STAGE_W;
-    // the notch (140px in) sits under the button; the panel hangs just below it
-    d.style.left = `${(r.left + r.width / 2 - st.left) / k - 140}px`; d.style.top = `${(r.bottom - st.top) / k + 14}px`;
-  }
-  d.classList.toggle('on', open);
-  b.textContent = open ? '×' : '?'; b.classList.toggle('active', open);
-  b.setAttribute('aria-label', open ? 'Close the rules' : 'Show the rules');
-}
+// the game part (key hunt, map puzzles) is marked on the stage
+function setPlaying(on) { stage.classList.toggle('playing', on); }
 
 /* ---------- waiting for the player ---------- */
 let pending = { cont: null, dial: null, dir: null, tapTarget: null };
@@ -351,27 +333,30 @@ function streakHit(firstTry) {
   if (!firstTry) { S.streak = 0; return; }
   S.streak++;
   if (S.streak % 3 === 0) {
-    setTimeout(() => { toast('On fire! 3 in a row', true); Sound.fx.streak(); $('#flare').classList.add('on'); setTimeout(() => $('#flare').classList.remove('on'), 1600); }, 1300);
+    const n = S.streak; // the run as it stands now: 3, 6, 9… correct first tries in a row
+    setTimeout(() => { toast(`On fire! ${n} in a row`, true); Sound.fx.streak(); $('#flare').classList.add('on'); setTimeout(() => $('#flare').classList.remove('on'), 1600); }, 1300);
   }
 }
 
 /* ---------- equation tablet ---------- */
+const toInt = tok => parseInt(tok.replace(/[()]/g, '').replace('−', '-'), 10);
+// '(+7) − 4 = ?' as coloured tokens (the sign and the sign rules card use the same)
+const eqTokens = str => str.split(' ').map((tok, i) => {
+  if (tok === '?') return `<span class="q">?</span>`;
+  if (tok === '=' || tok === '+' || tok === '−') return `<span class="tok op" data-i="${i}">${tok}</span>`;
+  return `<span class="tok ${cls(toInt(tok))}" data-i="${i}">${tok}</span>`;
+}).join(' ');
 const Tablet = {
   eq(str) {
     const t = $('#tablet'); t.className = 'on';
-    t.innerHTML = str.split(' ').map((tok, i) => {
-      if (tok === '?') return `<span class="q">?</span>`;
-      if (tok === '=' || tok === '+' || tok === '−') return `<span class="tok op" data-i="${i}">${tok}</span>`;
-      const v = parseInt(tok.replace(/[()]/g, '').replace('−', '-'), 10);
-      return `<span class="tok ${cls(v)}" data-i="${i}">${tok}</span>`;
-    }).join(' ');
+    t.innerHTML = eqTokens(str);
     this.fit();
   },
   rule(html) { const t = $('#tablet'); t.className = 'on rule'; t.innerHTML = html; this.fit(); },
-  // the sign glows while its line is spoken ("The next key is at…"), and stops when the line ends
+  // the sign glows while its line is spoken ("The next key is at…"), and the glow fades out when the line ends
   glow(said, onMap = false) {
-    const t = $('#tablet'), off = () => t.classList.remove('eq-hl', 'eq-map');
-    t.classList.add('eq-hl'); t.classList.toggle('eq-map', onMap); said.then(off, off);
+    const t = $('#tablet'), off = () => { if (t.classList.contains('eq-hl')) { t.classList.remove('eq-hl'); retrigger(t, 'eq-out'); } };
+    t.classList.remove('eq-out'); t.classList.add('eq-hl'); t.classList.toggle('eq-map', onMap); said.then(off, off);
   },
   solve(v) { const t = $('#tablet'); const q = t.querySelector('.q'); if (q) { q.outerHTML = numHTML(v); } t.classList.add('solved'); this.fit(); },
   // a fixed-size sign: shrink the text only when it would spill past the frame
@@ -459,7 +444,7 @@ const NL = {
     const c = document.createElement('div'); c.className = 'counter'; c.id = 'counter'; nl.appendChild(c);
     const k = document.createElement('div'); k.className = 'keyprize'; k.id = 'keyprize'; k.innerHTML = KEY_SVG; nl.appendChild(k);
     this.pose('explorer_idle'); this.place(0, true);
-    $('#nlWrap').classList.add('on');
+    $('#nlWrap').classList.remove('out'); $('#nlWrap').classList.add('on');
   },
   stone(v) { return $(`#nl .stone[data-v="${v}"]`); },
   pose(n) { if (this.exp) this.exp.querySelector('img').src = ASSET(n); },
@@ -739,11 +724,11 @@ function resetUI() {
   hideBubble(); Tablet.hide(); Dial.hide(); Dial.clear();
   ['#dirPick', '#btnContinue', '#demo', '#miniLine', '#hintArrow', '#ruleChip', '#flare'].forEach(s => $(s).classList.remove('on'));
   $('#toast').classList.remove('on');
-  clearActors(); clearProps(); $('#nlWrap').classList.remove('on'); $('#nl').innerHTML = '';
+  clearActors(); clearProps(); $('#nlWrap').classList.remove('on', 'out'); $('#nl').innerHTML = '';
   MapView.hide(); HUD.hide();
   document.querySelectorAll('.fly, .puff, .poofcloud').forEach(e => e.remove());
-  ['#badgeModal', '#final', '#title'].forEach(s => $(s).classList.remove('on'));
-  S.streak = 0; stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll', 'path-art', 'unlock-scroll', 'playing', 'stones-lava', 'cast', 'cast-now'); toggleRules(false); $('#scroll').classList.remove('unroll'); $('#pathArt').classList.remove('unroll');
+  ['#badgeModal', '#final', '#title', '#signRules'].forEach(s => $(s).classList.remove('on', 'out'));
+  stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll', 'path-art', 'unlock-scroll', 'playing', 'stones-lava', 'cast', 'cast-now'); $('#scroll').classList.remove('unroll'); $('#pathArt').classList.remove('unroll');
   $('#pathArt').classList.remove('glow', 'faint'); $('#pathArt .pa-hand')?.classList.remove('on'); $('#pathArt .pa-token').classList.remove('on'); $('#pathArt .pa-lit').setAttribute('d', '');
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
@@ -857,7 +842,7 @@ async function playScenes(list) {
 }
 
 async function runStory() {
-  QA.at('story');
+  QA.at('story'); reached('story');
   await playScenes(STORY_INTRO); // how to play is taught inside Chamber 1, key 1 (Coach)
 }
 
@@ -1119,6 +1104,7 @@ async function keyHunt(L, from = 0) {
       if (v === ans) break;
       tries++;
       await wrongKey(it, v, tries, ans);
+      if (tries === 4) await signRules(L, it); // the 4th miss: the sign rule behind this question, walked through
       if (tries >= 4) answerHand(NL.stone(ans)); // the 4th miss: show where the key is
     }
     await keySuccess(L, i, it, ans, tries === 0);
@@ -1184,7 +1170,7 @@ async function keySuccess(L, i, it, ans, firstTry) {
   const s = NL.stone(ans); s.classList.remove('pulse'); s.classList.add('land', 'show', 'correct'); // the answer stone lights up green and stays lit
   { const p = stagePos(s); FX.burst(p.x, p.y, 16, 'star', 6); }
   NL.pose('explorer_jump_key'); NL.jump();
-  const k = $('#keyprize');
+  const k = $('#keyprize'), last = i === LEVELS[L].keys.length - 1;
   if (LEVELS[L].keyBox) {
     // the hidden box sits where the explorer's head reaches at the top of the jump
     const box = document.createElement('div'); box.className = 'keybox'; box.id = 'keyBox';
@@ -1207,6 +1193,10 @@ async function keySuccess(L, i, it, ans, firstTry) {
   k.classList.remove('on');
   const r = RUN; await fly(KEY_SVG, stagePos(k), HUD.slotPos(i), 800, 70); guard(r);
   HUD.fill(i); Sound.fx.coin();
+  if (last) { // every key collected: a little party, and the full key tray bounces key by key
+    Sound.fx.celebrate(); FX.confetti('huge');
+    document.querySelectorAll('#slots .slot').forEach((s, n) => setTimeout(() => pulseClass(s, 'bump', 600), n * 90));
+  }
   NL.pose('explorer_thumbsup');
   if (it.demo) { NL.jump(); await talk('explorer', it.demo.done); endTalk(); } // the solved example ends on the explorer handing over
   else await voiceOnly('wizard', it.found || `Correct! You found it. The explorer reached ${numHTML(ans)}. The key is right here.`);
@@ -1292,7 +1282,6 @@ async function mysteries(L, from = 0) {
   const lvl = LEVELS[L], art = !!lvl.artMap;
   if (art) { setupPathArt(L); $('#pathArt').classList.add('faint'); litTo(lvl.pathArt, from); setRules(L); }
   else { mapScene(); setRules(L); stage.classList.toggle('map-ui', !!lvl.mapScroll); }
-  HUD.seals(lvl.mysteries.length);
   if (art && from === 0 && lvl.mapIntro.some(l => !l.vo)) await castIn();
   if (from === 0) for (const line of lvl.mapIntro) { // vo: an instruction, voice only
     if (line.exp && actors.exp) { actor('exp', { img: line.exp }); actorAnim('exp', 'shake'); } // exp: the explorer's face as the line starts
@@ -1302,6 +1291,7 @@ async function mysteries(L, from = 0) {
     castOut();
   }
   if (!art) { MapView.seals(L); await wait(1100); }
+  HUD.seals(lvl.mysteries.length); // the puzzle tray comes in with the puzzles (the unlock screen shows no tray)
   setPlaying(true);
   for (let j = 0; j < from; j++) { HUD.fill(j); const s = !art && MapView.seal(j); if (s) { s.classList.add('done'); s.textContent = '★'; } }
   for (let j = from; j < lvl.mysteries.length; j++) {
@@ -1343,11 +1333,13 @@ async function mysteries(L, from = 0) {
       await wait(300);
       Dial.clear();
       if (!art) actor('exp', { img: 'explorer_idle' });
+      if (tries === 4) await signRules(L, m); // the 4th miss: the sign rule behind this puzzle, walked through
       if (tries >= 4) guideKeypad(ans); // the 4th miss: the hand shows which keys to press
     }
     // solved
     clearAnswerHand(); Dial.good(); Tablet.solve(ans); Sound.fx.reveal();
-    if (lvl.mapScroll) { await wait(900); Dial.hide(); stage.classList.remove('map-scroll'); if (!art) setBg('bg_map_table'); await wait(500); }
+    // the keypad fades out on the scroll first, then the scroll goes (it never jumps to another place mid-fade)
+    if (lvl.mapScroll) { await wait(900); Dial.hide(); await wait(RM ? 60 : 360); stage.classList.remove('map-scroll'); if (!art) setBg('bg_map_table'); await wait(500); }
     if (seal) { seal.classList.remove('active'); seal.classList.add('done'); seal.textContent = '★'; }
     S.pathsOpen[L] = j + 1;
     if (art) { litTo(lvl.pathArt, j + 1); retrigger($('#pathArt .pa-lit'), 'flash'); } else MapView.refresh();
@@ -1402,7 +1394,7 @@ function setupPathArt(L) {
   const svg = art.querySelector('svg'), d = pa.route.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' ');
   svg.setAttribute('viewBox', `0 0 ${pa.w} ${pa.h}`);
   svg.querySelector('.pa-glow').setAttribute('d', d); svg.querySelector('.pa-hit').setAttribute('d', d);
-  $('#nlWrap').classList.remove('on'); setBg(LEVELS[L].bg);
+  $('#nlWrap').classList.remove('on', 'out'); setBg(LEVELS[L].bg);
   stage.classList.add('map-ui', 'path-art');
   return pa;
 }
@@ -1434,10 +1426,13 @@ function castOut() {
 const unlockLines = L => ({ ...UNLOCK, ...(LEVELS[L].unlock || {}) }); // a chamber's own lines over the defaults
 async function unlockArt(L) {
   const UNLOCK = unlockLines(L);
-  Tablet.hide(); $('#ruleChip').classList.remove('on');
+  const from = $('#slots').classList.contains('on') ? stagePos($('#slots')) : { x: STAGE_W - 140, y: 60 };
+  // the chamber fades away first (number line, explorer, sign and the key tray, which this screen doesn't show),
+  // then the map flies in out of where the keys were
+  Tablet.hide(); $('#ruleChip').classList.remove('on'); $('#slots').classList.remove('on'); $('#nlWrap').classList.add('out');
+  await wait(RM ? 80 : 450);
   const pa = setupPathArt(L); litTo(pa, 0); $('#pathArt').classList.add('faint');
   if (UNLOCK.explorer || UNLOCK.wizard) stage.classList.add('cast', 'cast-now'); // someone will talk: unroll it already tucked up, no jump later
-  const from = $('#slots').classList.contains('on') ? stagePos($('#slots')) : { x: STAGE_W - 140, y: 60 };
   ['#scroll', '#pathArt'].forEach(q => {
     const e = $(q); flyIn(e, from); e.classList.add('late'); retrigger(e, 'unroll');
     e.addEventListener('animationend', () => e.classList.remove('unroll', 'late'), { once: true });
@@ -1504,6 +1499,82 @@ async function revealedArt(L) {
   await wait(400);
 }
 
+/* ---------- sign rules: a short visual explanation, each rule with an example walked on a little number line.
+   Before a chamber's keys: that chamber's rules (signRules in data.js). After the 4th wrong try: the rule behind the
+   question glows, and the player's own question is walked through last. A tap on a row plays it again. ---------- */
+const signOf = tok => /[−-]/.test(tok) ? '−' : '+';
+// '(+7) − 4 = ?' → '+−+': the first number's sign, the operation, the second number's sign
+const signKey = eq => { const [a, op, b] = eq.split(' '); return signOf(a) + op + signOf(b); };
+const signsHTML = k => [k[0], k[2]].map(s => `(<span class="${s === '−' ? 'neg' : 'pos'}">${s}</span>)`).join(` ${k[1]} `);
+// the rule a question follows: this chamber's first, then earlier ones; else one with the same operation and second sign
+function ruleFor(L, eq) {
+  const k = signKey(eq), all = LEVELS.slice(0, L + 1).map(l => l.signRules || []).reverse().flat();
+  return all.find(r => signKey(r.eq) === k) || all.find(r => signKey(r.eq).slice(1) === k.slice(1)) || null;
+}
+function srRow(x) {
+  const [a, op, b] = x.eq.split(' '), start = toInt(a), delta = (op === '+' ? 1 : -1) * toInt(b), ans = start + delta;
+  let lo = Math.min(start, ans) - 1, hi = Math.max(start, ans) + 1;
+  if (lo > 0 && lo <= 3) lo = 0; if (hi < 0 && hi >= -3) hi = 0; // 0 shows when it is close by
+  let cells = '';
+  for (let v = lo; v <= hi; v++) cells += `<i class="sr-cell${v === 0 ? ' zero' : ''}" data-v="${v}"><span class="${cls(v)}">${fmt(v)}</span></i>`;
+  return `<div class="sr-row${x.focus ? ' focus' : ''}${x.mine ? ' mine' : ''}" data-start="${start}" data-delta="${delta}">`
+    + `<div class="sr-signs">${x.mine ? '<small>Your puzzle</small>' : ''}${signsHTML(signKey(x.eq))}</div>`
+    + `<div class="sr-what"><b>${x.move}</b><span>${x.text}</span></div>`
+    + `<div class="sr-ex"><div class="sr-eq">${eqTokens(x.eq)} <span class="op">=</span> <span class="sr-ans">?</span></div>`
+    + `<div class="sr-line${hi - lo > 13 ? ' tight' : ''}" style="--n:${hi - lo + 1}">${cells}<i class="sr-arrow"></i></div></div>`
+    + `${x.focus ? '<em class="sr-tag">Like your puzzle!</em>' : ''}</div>`;
+}
+// one row's example: start stone, then the arrow grows a stone at a time, then the answer lights up
+async function playRow(el) {
+  const me = el._run = (el._run || 0) + 1, live = () => el._run === me && el.isConnected;
+  const start = +el.dataset.start, delta = +el.dataset.delta, ans = start + delta, dir = Math.sign(delta), n = Math.abs(delta);
+  const cells = [...el.querySelectorAll('.sr-cell')], lo = +cells[0].dataset.v, w = 100 / cells.length, cell = v => cells[v - lo];
+  const arrow = el.querySelector('.sr-arrow'), ms = RM ? 90 : Math.max(150, Math.min(320, 2400 / n)), at = (start - lo + .5) * w;
+  cells.forEach(c => c.classList.remove('st', 'hl', 'land')); el.classList.remove('done');
+  el.querySelector('.sr-ans').innerHTML = '?';
+  arrow.classList.remove('on'); arrow.classList.toggle('back', dir < 0); arrow.style.transition = 'none'; arrow.style.width = '0';
+  arrow.style.left = dir > 0 ? `${at}%` : 'auto'; arrow.style.right = dir < 0 ? `${100 - at}%` : 'auto';
+  void arrow.offsetWidth; arrow.style.transition = ''; arrow.style.setProperty('--srms', `${ms}ms`);
+  el.classList.add('playing'); cell(start).classList.add('st'); Sound.fx.pop();
+  await wait(RM ? 100 : 450); if (!live()) return;
+  arrow.classList.add('on');
+  for (let k = 1; k <= n; k++) {
+    arrow.style.width = `${k * w}%`; cell(start + dir * k).classList.add('hl'); Sound.fx.count(k);
+    await wait(ms); if (!live()) return;
+  }
+  cell(ans).classList.add('land'); el.querySelector('.sr-ans').innerHTML = numHTML(ans); Sound.fx.coin();
+  el.classList.remove('playing'); el.classList.add('done');
+  await wait(RM ? 100 : 380);
+}
+async function signRules(L, puzzle = null) {
+  const r = RUN, box = $('#signRules'), list = box.querySelector('.sr-list'), btn = $('#btnRules');
+  const rows = (LEVELS[L].signRules || []).map(x => ({ ...x }));
+  if (puzzle) {
+    const match = ruleFor(L, puzzle.eq), i = match ? rows.findIndex(x => x.eq === match.eq) : -1;
+    if (i >= 0) rows[i].focus = true; else if (match) rows.unshift({ ...match, focus: true });
+    const n = Math.abs(puzzle.delta), way = puzzle.delta > 0 ? 'right' : 'left';
+    rows.push({ eq: puzzle.eq.replace(/ = \?$/, ''), mine: true, move: `Move ${way}`, text: `Start at ${fmt(puzzle.start)} and take ${n} step${n === 1 ? '' : 's'} ${way}.` });
+  }
+  if (!rows.length) return;
+  box.querySelector('h2').textContent = puzzle ? 'Let’s look at the rule!' : 'Sign rules';
+  box.querySelector('.sr-sub').textContent = puzzle ? 'Your puzzle works like the glowing rule. Watch, then try again!' : 'Watch which way each sign moves you. Tap a rule to see it again.';
+  list.innerHTML = rows.map(srRow).join('');
+  btn.textContent = puzzle ? 'Try again' : 'Let’s go!'; btn.classList.remove('on');
+  box.classList.remove('out'); box.classList.add('on'); Sound.fx.whoosh();
+  const els = [...list.children];
+  els.forEach(el => el.addEventListener('click', () => { Sound.fx.tap(); playRow(el).catch(() => {}); }));
+  await wait(RM ? 100 : 450 + els.length * 120); // the rows slide in one after another
+  for (const el of els) await playRow(el);
+  btn.classList.add('on'); Sound.fx.sparkle();
+  await new Promise(res => {
+    const go = () => { btn.onclick = null; pending.tapTarget = null; res(); };
+    btn.onclick = () => { btn.blur(); Sound.fx.tap(); go(); }; pending.tapTarget = go;
+  });
+  guard(r);
+  box.classList.add('out'); await wait(RM ? 60 : 280);
+  box.classList.remove('on', 'out');
+}
+
 async function badge(L) {
   const b = LEVELS[L].badge, m = $('#badgeModal');
   m.querySelector('.badge-art').innerHTML = badgeSVG(b);
@@ -1521,7 +1592,8 @@ async function badge(L) {
 const STEPS = ['teach', 'keys', 'unlock', 'map', 'reveal', 'badge'];
 async function runLevel(L, step = 'teach', i = 0) {
   const from = STEPS.indexOf(step), lvl = LEVELS[L];
-  S.level = L; S.levelGems[L] = 0; S.piecesOpen = from >= 3 ? L + 1 : L;
+  S.level = L; S.levelGems[L] = 0; S.piecesOpen = from >= 3 ? L + 1 : L; reached(String(L));
+  QA.at(`${L}:${step}:${i}`); // where the player is from the start, even while the step's intro lines play (back counts on it)
   S.pathsOpen = [0, 1, 2].map(k => (k < L ? 4 : k > L ? 0 : from >= 4 ? 4 : from === 3 ? i : 0));
   resetUI();
   stage.classList.toggle('theme-cavern', lvl.theme === 'cavern');
@@ -1530,7 +1602,7 @@ async function runLevel(L, step = 'teach', i = 0) {
   setBg(lvl.bg); NL.build(lvl);
   HUD.level(`Chamber ${L + 1}: ${lvl.name}`);
   if (L > 0 && from === 0) { toast(lvl.name, true); Sound.fx.whoosh(); await wait(1200); }
-  if (from <= 0) { QA.at(`${L}:teach:0`); await teach(L); }
+  if (from <= 0) { QA.at(`${L}:teach:0`); await teach(L); await signRules(L); } // the sign rules, with examples, before the keys
   if (from <= 1) await keyHunt(L, from === 1 ? i : 0);
   if (from === 2) { HUD.keys(lvl.keys.length); lvl.keys.forEach((_, k) => HUD.fill(k)); }
   if (from <= 2) { QA.at(`${L}:unlock:0`); await unlock(L); }
@@ -1542,7 +1614,7 @@ async function runLevel(L, step = 'teach', i = 0) {
 }
 
 async function runEnding() {
-  resetUI(); S.piecesOpen = 3; QA.at('end');
+  resetUI(); S.piecesOpen = 3; QA.at('end'); reached('end');
   await playScenes(STORY_END);
   const f = $('#final');
   f.querySelector('.badge-art').innerHTML = badgeSVG(FINAL_BADGE);
@@ -1553,7 +1625,7 @@ async function runEnding() {
 /* ---------- chapters ---------- */
 async function goChapter(c, step = 'teach', i = 0) {
   if (Clock.paused) closeMenu();
-  RUN++; resetUI();
+  RUN++; resetUI(); S.streak = 0; // a run of right answers carries on from chamber to chamber
   try {
     if (c === 'story') { S.gems = 0; setGems(); await runStory(); c = 0; }
     if (c === 'howto') { c = 0; step = 'keys'; i = 0; } // how to play = the guided first key
@@ -1574,9 +1646,35 @@ $('#btnSound').addEventListener('click', () => { Sound.init(); Sound.toggle(); S
 $('#btnVoice').addEventListener('click', () => { Voice.toggle(); Sound.fx.tap(); paintToggles(); });
 $('#btnPause').innerHTML = ICONS.menu;
 $('#btnPause').addEventListener('click', () => { Sound.fx.tap(); pauseGame(); });
+// back (top left): one step back — the previous key or map puzzle, the chamber's intro, the chamber before, the story;
+// from the story, the home screen. Steps are the ones the QA panel jumps to (QA.at marks where the player is).
+const STEP_LIST = ['story', ...LEVELS.flatMap((lvl, L) => [`${L}:teach:0`, ...lvl.keys.map((_, i) => `${L}:keys:${i}`), `${L}:unlock:0`,
+  ...lvl.mysteries.map((_, i) => `${L}:map:${i}`), `${L}:reveal:0`, ...(lvl.badge ? [`${L}:badge:0`] : [])]), 'end'];
+function stepBack() {
+  const k = STEP_LIST.indexOf(QA.cur);
+  if (k <= 0) { showTitle(); return; } // the story (or anything unknown): back to the home screen
+  const [L, step, i] = STEP_LIST[k - 1].split(':');
+  goChapter(step ? +L : L, step, +i || 0);
+}
+$('#btnBack').innerHTML = ICONS.back;
+$('#btnBack').addEventListener('click', () => { $('#btnBack').blur(); Sound.fx.tap(); stepBack(); });
 // pause freezes the story or game exactly where it is (timers, animations, the voice, the music); closing the menu carries on
+// the menu's chapter list offers only what the player has already reached (the story, each chamber, the treasure),
+// remembered in this browser so it survives a reload
+const played = new Set((() => { try { return JSON.parse(localStorage.getItem('tt-played')) || []; } catch (e) { return []; } })());
+function reached(c) {
+  if (played.has(c)) return; played.add(c);
+  try { localStorage.setItem('tt-played', JSON.stringify([...played])); } catch (e) {}
+}
+function paintChapters() {
+  const btns = [...document.querySelectorAll('#pause [data-go]')];
+  btns.forEach(b => { b.hidden = !played.has(b.dataset.go); });
+  const any = btns.some(b => !b.hidden);
+  $('#pause h3').hidden = !any; $('#pause .chapters').hidden = !any;
+}
 function pauseGame() {
   if (Clock.paused) return;
+  paintChapters();
   Voice.pause(); Sound.hold(true); Clock.pause($('#pause')); stage.classList.add('paused'); $('#pause').classList.add('on');
 }
 function closeMenu() {
@@ -1584,6 +1682,17 @@ function closeMenu() {
   if (!Clock.paused) return;
   stage.classList.remove('paused'); Clock.resume(); Sound.hold(false); Voice.resume();
 }
+// leaving the tab or the window pauses the game on the spot (timers, animations, voice, music, effects);
+// coming back carries on from there. A game already paused from the menu stays paused until the menu is closed.
+let away = false, autoPaused = false;
+function setAway(a) {
+  if (a === away) return; away = a;
+  if (a) { Voice.away(true); Sound.away(true); if (!Clock.paused) { autoPaused = true; Clock.pause(); } }
+  else { if (autoPaused) { autoPaused = false; Clock.resume(); } Sound.away(false); Voice.away(false); }
+}
+document.addEventListener('visibilitychange', () => setAway(document.hidden));
+addEventListener('blur', () => setAway(true));
+addEventListener('focus', () => setAway(document.hidden));
 $('#pause').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) { if (e.target.id === 'pause') closeMenu(); return; }
   Sound.fx.tap();
@@ -1707,17 +1816,29 @@ addEventListener('pointerdown', startMusic, true); addEventListener('keydown', s
 // the cover tries to play music straight away; if the browser holds it back, a hint asks for a tap
 // the cover starts the music and says the game's name as soon as it opens (browsers that block sound until
 // the first interaction get both on the first tap or key instead)
-let coverVoiced = false;
+let coverVoiced = false, titleAt = 0;
+const sayTitle = (delay = 0) => {
+  titleAt = Date.now() + delay;
+  setTimeout(() => { if ($('#title').classList.contains('on')) Voice.say('Treasure Tunnel!', 'narrator', 'vo_title'); }, delay);
+};
 function coverVoice() {
   if (coverVoiced || !$('#title').classList.contains('on') || !Sound.running) return;
-  coverVoiced = true; setTimeout(() => { if ($('#title').classList.contains('on')) Voice.say('Treasure Tunnel!', 'narrator', 'vo_title'); }, 900);
+  coverVoiced = true; sayTitle(900);
 }
 document.addEventListener('tt-sound', coverVoice);
 function coverMusic() { coverVoiced = false; Sound.init(); Sound.music(); setTimeout(coverVoice, 300); }
+// every tap on the cover (away from Start) says the title again, for anyone who missed it;
+// a tap just as the first title line is starting doesn't repeat it
+$('#title').addEventListener('click', e => {
+  if (e.target.closest('#btnStart') || !$('#title').classList.contains('on')) return;
+  Sound.init(); Sound.music();
+  if (Date.now() - titleAt < 1200) return;
+  coverVoiced = true; sayTitle();
+});
 $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.init(); Sound.music(); Sound.fx.fanfare(); $('#title').classList.remove('on'); goChapter('story'); });
 
 /* ---------- optional UI art: used when the file exists, drawn in CSS otherwise ---------- */
-['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text', 'ui_keybox', 'ui_platform_lava', 'chest_open_sheet', 'explorer_run_sheet', 'ui_btn_pause', 'ui_btn_hint'].forEach(n => {
+['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text', 'ui_keybox', 'ui_platform_lava', 'chest_open_sheet', 'explorer_run_sheet', 'ui_btn_pause', 'ui_btn_back'].forEach(n => {
   const img = new Image();
   img.onload = () => { stage.style.setProperty(`--a-${n}`, `url("${img.src}")`); stage.classList.add(`has-${n}`); };
   img.onerror = () => { if (!img.src.endsWith('.png')) img.src = `assets/${n}.png`; }; // some art is .png
@@ -1730,6 +1851,7 @@ $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.in
  'bg_tunnel', 'bg_level1_amber_tunnel', 'bg_level2_crystal_spires', 'bg_level3_lava_sea', 'bg_map_table', 'bg_final_path', 'bg_treasure_chamber']
   .forEach(n => { const i = new Image(); i.src = ASSET(n); });
 fit(); paintToggles(); setGems(); showTitle();
+if (document.hidden) setAway(true); // opened in a background tab: it starts once it is looked at
 if (document.fonts) document.fonts.ready.then(() => Tablet.fit()); // re-fit once the game font has loaded
 window.__tt = { goChapter, devButton, ctx: () => ({ step: QA.cur, label: QA.label, bg: bgNow }) };
 })();

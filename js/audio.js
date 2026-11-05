@@ -113,6 +113,11 @@ const Sound = (() => {
     streak()  { notes([440, 554, 659, 880], 0.06, { type: 'sawtooth', vol: 0.05, dur: 0.15 }); noise(0.5, { vol: 0.15, type: 'bandpass', freq: 600, sweep: 2500, delay: 0.1 }); },
     creak()   { tone(90, 0.7, { type: 'sawtooth', vol: 0.05, slide: 160 }); },
     sparkle() { notes([1760, 2217, 2637], 0.05, { vol: 0.05, dur: 0.2 }); },
+    // every key of a chamber collected: two party-popper cracks, a quick rising run and a shower of twinkles
+    celebrate() { noise(0.1, { vol: 0.5, type: 'highpass', freq: 1800 }); noise(0.1, { vol: 0.42, type: 'highpass', freq: 2400, delay: 0.16 });
+                  notes([523, 659, 784, 1047, 1319], 0.07, { type: 'triangle', vol: 0.14, dur: 0.22, delay: 0.08 });
+                  tone(1568, 0.55, { type: 'triangle', vol: 0.12, delay: 0.45 });
+                  notes([2093, 2637, 3136, 2637, 3520], 0.06, { vol: 0.045, dur: 0.18, delay: 0.5 }); },
   };
 
   function startAmbience() {
@@ -156,15 +161,11 @@ const Sound = (() => {
   }
   function duck(on_) { ducked = on_; musicLevel(on_ ? 0.15 : 0.8); }
 
-  // switching tabs or minimising pauses every sound (music, ambience, effects); coming back resumes it
-  document.addEventListener('visibilitychange', () => {
-    if (!ctx) return;
-    if (document.hidden) ctx.suspend();
-    else if (on) ctx.resume(); // a paused game stays quiet through hold()
-  });
-
   return {
     init, music: startMusic, duck,
+    // leaving the tab or window silences every sound (music, ambience, effects); coming back resumes it
+    // (a paused game stays quiet through hold())
+    away(a) { if (!ctx) return; if (a) ctx.suspend(); else ctx.resume(); },
     get running() { return !!ctx && ctx.state === 'running'; },
     get musicVolume() { return musicVol; },
     set musicVolume(v) { musicVol = Math.max(0, Math.min(1, v)); musicLevel(0.05); },
@@ -255,40 +256,55 @@ const Voice = (() => {
       }
       if (!synth) { setTimeout(res, Math.min(est, 2600)); return; }
       synth.cancel(); synth.resume(); // never left stuck paused
-      const u = new SpeechSynthesisUtterance(spoken);
-      if (pending.length) {
-        estimate(est, 1200); // only used if this browser never reports word boundaries
-        u.onboundary = e => {
-          if (e.name && e.name !== 'word') return;
-          clearCues();
-          const w = (lower.slice(e.charIndex).match(/^[a-z]+/) || [''])[0];
-          pending.slice().forEach(c => { if (w === c.word.toLowerCase() || e.charIndex >= c.at) fire(c); });
-        };
-      }
-      const p = VOICES[who] || VOICES.narrator;
-      const vv = byWho[who] || voice; if (vv) u.voice = vv;
-      u.pitch = p.pitch; u.rate = p.rate; u.volume = 1;
-      let done = false; const fin = () => { if (!done) { done = true; res(); } };
-      u.onend = fin; u.onerror = fin;
-      setTimeout(fin, est + 2500); // some browsers never fire onend
-      synth.speak(u);
+      if (pending.length) estimate(est, 1200); // only used if this browser never reports word boundaries
+      const p = VOICES[who] || VOICES.narrator, vv = byWho[who] || voice;
+      let done = false, safety = null;
+      const fin = () => { if (!done) { done = true; clearTimeout(safety); if (live === line) live = null; res(); } };
+      // a line cut off by leaving the tab is said again from the start on coming back (see away)
+      const line = {
+        speak() {
+          const u = new SpeechSynthesisUtterance(spoken);
+          if (pending.length) u.onboundary = e => {
+            if (e.name && e.name !== 'word') return;
+            clearCues();
+            const w = (lower.slice(e.charIndex).match(/^[a-z]+/) || [''])[0];
+            pending.slice().forEach(c => { if (w === c.word.toLowerCase() || e.charIndex >= c.at) fire(c); });
+          };
+          if (vv) u.voice = vv;
+          u.pitch = p.pitch; u.rate = p.rate; u.volume = 1;
+          u.onend = u.onerror = () => { if (line.u === u) fin(); };
+          line.u = u; clearTimeout(safety); safety = setTimeout(fin, est + 2500); // some browsers never fire onend
+          synth.speak(u);
+        },
+        cut() { line.u = null; clearTimeout(safety); },
+      };
+      live = line; line.speak();
     });
   }
 
-  // a hidden tab pauses a recorded clip and stops the browser's speech (Chrome's speech can stay stuck if it's paused,
-  // which silences every later line); coming back resumes the clip and clears any stuck speech
-  let cutLine = null;
-  document.addEventListener('visibilitychange', () => {
-    // only a clip that was actually playing is paused and later resumed (a finished line is never replayed)
-    if (document.hidden) { if (clipEl && !clipEl.paused && !clipEl.ended) { clipEl.pause(); clipEl._tabPaused = true; } if (synth && (synth.speaking || synth.pending)) { cutLine = true; synth.cancel(); } }
-    else { if (clipEl && clipEl._tabPaused) { clipEl._tabPaused = false; clipEl.play().catch(() => {}); } if (synth) { synth.resume(); if (cutLine) { cutLine = null; synth.cancel(); } } }
-  });
+  // leaving the tab or window pauses a recorded clip and stops the browser's speech (Chrome's speech can stay stuck if
+  // it's paused, which silences every later line); coming back resumes the clip and says the cut line again
+  let live = null, cutLine = null, held = false;
+  function away(a) {
+    if (a) {
+      // only a clip that was actually playing is paused and later resumed (a finished line is never replayed)
+      if (clipEl && !clipEl.paused && !clipEl.ended) { clipEl.pause(); clipEl._tabPaused = true; }
+      if (live && live.u) { cutLine = live; live.cut(); }
+      if (synth && (synth.speaking || synth.pending || synth.paused)) synth.cancel();
+    } else if (!held) wake(); // the pause menu is open: closing it carries on (resume)
+  }
+  function wake() {
+    if (clipEl && clipEl._tabPaused) { clipEl._tabPaused = false; clipEl.play().catch(() => {}); }
+    if (synth) synth.resume();
+    if (cutLine) { const l = cutLine; cutLine = null; if (live === l) l.speak(); }
+  }
 
   return {
     // the pause button: the line stops mid-word and carries on from there
-    pause() { if (clipEl && !clipEl.paused && !clipEl.ended) { clipEl.pause(); clipEl._held = true; } if (synth && synth.speaking) synth.pause(); },
-    resume() { if (clipEl && clipEl._held) { clipEl._held = false; clipEl.play().catch(() => {}); } if (synth && synth.paused) synth.resume(); },
-    say, stop() { stopClip(); clearCues(); if (synth) synth.cancel(); speaking = 0; Sound.duck(false); },
+    pause() { held = true; if (clipEl && !clipEl.paused && !clipEl.ended) { clipEl.pause(); clipEl._held = true; } if (synth && synth.speaking) synth.pause(); },
+    resume() { held = false; if (clipEl && clipEl._held) { clipEl._held = false; clipEl.play().catch(() => {}); } if (synth && synth.paused) synth.resume(); wake(); },
+    away,
+    say, stop() { stopClip(); clearCues(); live = cutLine = null; if (synth) synth.cancel(); speaking = 0; Sound.duck(false); },
     get on() { return on; },
     toggle() { on = !on; if (!on) { stopClip(); if (synth) synth.cancel(); } return on; },
   };

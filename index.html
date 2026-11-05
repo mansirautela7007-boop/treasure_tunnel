@@ -35,14 +35,14 @@
           <div id="gems" title="Gems for first-try answers"><span class="gem-ico"></span><span id="gemCount">0</span></div>
           <button class="icon-btn" id="btnVoice" aria-label="Voice on or off"></button>
           <button class="icon-btn" id="btnSound" aria-label="Sound on or off"></button>
-          <button class="icon-btn" id="btnHelp" aria-label="Hear the instruction again">?</button>
-          <button class="icon-btn" id="btnPause" aria-label="Menu"></button>
         </div>
       </div>
+      <!-- back and pause: one size and place on every screen (story, chambers, maps) -->
+      <button class="icon-btn" id="btnBack" aria-label="Back one step"></button>
+      <button class="icon-btn" id="btnPause" aria-label="Menu"></button>
 
       <div id="pathArt"><div class="pa-img"></div><svg class="pa-svg"><path class="pa-lit"/><path class="pa-glow"/><path class="pa-hit"/></svg><div class="pa-token"></div></div>
       <div id="scroll" aria-hidden="true"><div class="roll l"></div><div class="sheet"></div><div class="roll r"></div></div>
-      <div id="rulesDrop" aria-label="Direction rules"></div>
       <div id="tablet" aria-live="polite"></div>
       <div id="ruleChip"></div>
       <div id="hintArrow"></div>
@@ -137,6 +137,15 @@
         <h2 class="badge-name"></h2>
         <p class="badge-sub"></p>
         <button class="bigbtn" id="btnBadge">Next chamber</button>
+      </div>
+    </div>
+
+    <div id="signRules" class="overlay modal" role="dialog" aria-label="Sign rules">
+      <div class="panel sr-panel">
+        <h2>Sign rules</h2>
+        <p class="sr-sub"></p>
+        <div class="sr-list"></div>
+        <button class="bigbtn" id="btnRules">Let’s go!</button>
       </div>
     </div>
 

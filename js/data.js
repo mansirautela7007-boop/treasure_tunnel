@@ -38,7 +38,6 @@ const LEVELS = [
     theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP',
     // VO only as scripted (no extra move prompt); the sign shows only while there is on-screen text
     voOnly: true, signOnlyWithOst: true,
-    helpRules: true, // the ? button opens a dropdown of the direction rules
     keyBox: true, // a hidden box above the right stone: the explorer's jump knocks it into view and the key pops out
     mapScroll: true, // map puzzles on a parchment scroll; the map shows between puzzles
     artMap: true, // unlock + between puzzles use the path illustration (dimmed, route lighting up) instead of the map
@@ -46,6 +45,13 @@ const LEVELS = [
     pathArt: { img: 'path_reveal_ch1', w: 1446, h: 935, route: [[53, 359], [173, 353], [268, 313], [303, 343], [338, 376], [418, 393], [463, 443], [508, 508], [558, 527], [598, 559], [678, 566], [758, 579], [798, 510], [878, 519], [958, 505], [1038, 528], [1078, 464], [1098, 448], [1163, 473], [1213, 533], [1298, 561], [1403, 568]] },
     // no badge: Chamber 1 goes straight on to Chamber 2
     rule: [['+', 'Add', 'right'], ['−', 'Subtract', 'left']],
+    // sign rules card (signRules in game.js): shown before the keys, and again after a 4th wrong try.
+    // eq is the example walked on the little number line; move and text explain it
+    signRules: [
+      { eq: '(+2) + 3', move: 'Add: move right', text: 'Same signs: add them. The answer stays +.' },
+      { eq: '(−4) + 6', move: 'Add: move right', text: 'Different signs: you cross 0. The bigger size gives the sign.' },
+      { eq: '(+3) − 5', move: 'Subtract: move left', text: 'Take away more than you have and you go below 0.' },
+    ],
     teach: [ // script: Game V3, Level 1 Teaching
       { type: 'zero', who: 'wizard', text: 'Watch carefully! The tunnel has a little trick.' },
       { type: 'arrows', who: 'wizard',
@@ -118,10 +124,13 @@ const LEVELS = [
     theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP', mapScroll: true,
     artMap: true, // unlock + between puzzles use the path illustration, like Chamber 1
     voOnly: true, // each key's own line is the instruction (no extra move prompt)
-    helpRules: true, // the ? button opens a dropdown of the direction rules
     keyBox: true, // the hidden key box above the right stone, as in Chamber 1
     // no badge: the chamber goes straight on
     rule: [['+(−)', 'Add a negative', 'left']],
+    signRules: [
+      { eq: '(−2) + (−3)', move: 'Add a negative: move left', text: 'Same signs: add the sizes and keep the − sign.' },
+      { eq: '(+3) + (−5)', move: 'Add a negative: move left', text: 'Different signs: the bigger size gives the sign.' },
+    ],
     teach: [
       // script, Level 2 "Transition and teaching (Rule 1)"
       { type: 'wizardIn', who: 'wizard', text: 'Haha! This path is different. The puzzles are different too!' },
@@ -197,10 +206,13 @@ const LEVELS = [
     theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP',
     mapScroll: true, artMap: true, // map puzzles on the scroll; unlock + between puzzles use the path illustration, like Chamber 1
     voOnly: true, // each key's own line is the instruction (no extra move prompt)
-    helpRules: true, // the ? button opens a dropdown of the direction rules
     keyBox: true, // the hidden key box above the right stone, as in Chamber 1
     // no badge: the chamber goes straight on
     rule: [['−(−)', 'Subtract a negative', 'right']],
+    signRules: [
+      { eq: '(+2) − (−3)', move: 'Subtract a negative: move right', text: 'Two minus signs make a plus: − (−3) is the same as + 3.' },
+      { eq: '(−5) − (−2)', move: 'Subtract a negative: move right', text: 'Turn − (−2) into + 2, then add.' },
+    ],
     teach: [
       // script, Level 3 "Teaching"
       { type: 'wizardIn', who: 'wizard', text: 'Hahaha! This path is difficult and the puzzles are different too.' },

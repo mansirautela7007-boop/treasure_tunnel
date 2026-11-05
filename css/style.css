@@ -63,8 +63,10 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 @keyframes ringPulse { 50% { transform: scale(1.08); opacity: .7; } }
 
 /* ---------- number line ---------- */
-#nlWrap { position: absolute; left: 0; right: 0; top: 0; height: 0; display: none; }
-#nlWrap.on { display: block; }
+#nlWrap { position: absolute; left: 0; right: 0; top: 0; height: 0; display: none; transition: opacity .4s ease; }
+#nlWrap.on { display: block; animation: fadeIn .5s ease-out; }
+#nlWrap.out { opacity: 0; } /* the chamber fading away before the map comes in */
+@keyframes fadeIn { from { opacity: 0; } }
 #nl { position: absolute; left: 0; top: 0; height: 90px; transition: transform var(--stepms, .45s) ease-in-out; will-change: transform; }
 /* number line: cream stone tiles, every number shown, the explorer's tile glows */
 .stone { position: absolute; top: 0; width: 104px; height: 72px; margin-left: -52px; border-radius: 12px; box-sizing: border-box;
@@ -230,8 +232,11 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 
 #tray { position: absolute; left: 50%; bottom: 14px; display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-radius: 26px;
   background: rgba(28,16,42,.92); border: 3px solid #E2A84B; box-shadow: 0 12px 30px rgba(0,0,0,.55);
-  transform: translate(-50%, 160%); transition: transform .45s cubic-bezier(.2,1.3,.4,1); }
-#tray.on { transform: translate(-50%, 0); }
+  /* one way in and out everywhere (bottom bar or on the scroll): a fade with a small rise; hidden it takes no taps */
+  transform: translateX(-50%); opacity: 0; visibility: hidden; translate: 0 26px; scale: .96;
+  transition: opacity .3s ease, translate .4s cubic-bezier(.2,1.3,.4,1), scale .4s cubic-bezier(.2,1.3,.4,1), visibility 0s linear .4s; }
+#tray.on { opacity: 1; visibility: visible; translate: none; scale: none;
+  transition: opacity .3s ease, translate .4s cubic-bezier(.2,1.3,.4,1), scale .4s cubic-bezier(.2,1.3,.4,1), visibility 0s; }
 #tray.pulse { animation: trayPulse 1.2s ease-in-out 3; }
 @keyframes trayPulse { 50% { box-shadow: 0 0 0 4px #ffd54a, 0 0 30px 6px rgba(255,213,74,.7); } }
 #tray .digits { display: flex; gap: 6px; }
@@ -310,10 +315,13 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 40; }
 .overlay.on { display: flex; }
 .modal { background: rgba(10,5,18,.7); }
+.modal.on { animation: fadeIn .25s ease-out; } /* the dimmed backdrop fades in under the popping panel */
+.modal.out { opacity: 0; transition: opacity .25s ease; }
 .panel { position: relative; background: linear-gradient(#3a2457, #241634); border: 4px solid #e2a84b; border-radius: 30px; padding: 28px 40px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.7); animation: enterPop .5s cubic-bezier(.2,1.5,.4,1) both; }
 .panel h2 { font: 40px 'Lilita One'; margin: 6px 0 12px; color: var(--gold); text-shadow: 0 3px 0 #000; }
 .panel h3 { font: 22px 'Lilita One'; margin: 20px 0 10px; color: #e8d6ff; }
 .panel .row, .panel .chapters { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+#pause [hidden] { display: none; } /* chapters not reached yet stay out of the menu */
 .pill { border: 2px solid rgba(255,255,255,.4); background: rgba(255,255,255,.1); color: #fff; border-radius: 30px; padding: 8px 20px; font: 600 20px 'Baloo 2'; }
 .pill:active { transform: scale(.95); }
 #title { background: radial-gradient(ellipse at 50% 60%, rgba(20,10,30,.1), rgba(10,5,18,.65) 75%); gap: 18px; }
@@ -415,7 +423,6 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 
 /* top bar: only the key tray (top right) and the QA button */
 .theme-cavern #levelName, .theme-cavern #ruleChip { visibility: hidden; }
-#btnHelp { display: none; font: 24px 'Lilita One'; }
 .theme-cavern #slots { position: absolute; right: 130px; top: 2px; background: linear-gradient(#5a3a1c, #3a2410); border: 3px solid #e2a84b; box-shadow: inset 0 2px 0 rgba(255,255,255,.2), 0 4px 10px rgba(0,0,0,.45); }
 
 /* wizard line: long banner across the top */
@@ -507,7 +514,6 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 /* top right: key tray, then ? and pause (gems, voice and sound hidden) */
 .theme-cavern #hud { top: 48px; }
 .theme-cavern #gems, .theme-cavern #btnVoice, .theme-cavern #btnSound { display: none; }
-.theme-cavern #btnHelp { display: flex; }
 .theme-cavern .hud-right { gap: 7px; margin-right: 17px; }
 .theme-cavern .hud-right .icon-btn { width: 40px; height: 40px; font-size: 20px; border-color: #fff; background: rgba(10,14,40,.7); }
 .theme-cavern .hud-right .icon-btn svg { width: 20px; height: 20px; }
@@ -546,8 +552,6 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 /* equation text: 53px throughout */
 :is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern.has-ui_equation_sign #tablet { font-size: 53px; line-height: 92px; }
 :is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern #slots { scale: .773; right: 171.2px; top: -3.6px; }
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern #btnHelp { translate: -18.2px -8.6px; }
-:is(#stage[data-bg="bg_level1_amber_tunnel"], #stage[data-bg="bg_level2_shadow_chamber"], #stage[data-bg="bg_level2_crystal_spires"], #stage[data-bg="bg_level3_crystal_cavern"], #stage[data-bg="bg_level3_lava"], #stage[data-bg="bg_level3_lava_sea"]).theme-cavern #btnPause { translate: -15px -8.1px; }
 
 /* ===================================================================== */
 /* Chamber 1 map puzzles (LEVELS[0].mapScroll, reference 15 Oct)          */
@@ -562,8 +566,6 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #stage.map-ui #bubble.side .txt { font: 24px/1.25 'Lilita One', sans-serif; color: #1d2650; }
 /* top right: the same key tray, ? and pause positions as the intro */
 #stage.map-ui.theme-cavern #slots { scale: .773; transform-origin: 100% 0; right: 171.2px; top: -3.6px; }
-#stage.map-ui.theme-cavern #btnHelp { translate: -18.2px -8.6px; }
-#stage.map-ui.theme-cavern #btnPause { translate: -15px -8.1px; }
 
 /* behind the scroll: the chamber background, blurred; map and explorer tucked away */
 .bg { transition: opacity .8s ease, filter .4s; }
@@ -592,8 +594,7 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 
 /* keypad: + / − column, digits in a 4-wide grid, × spans two, CHECK below (446,313) */
 #stage.map-scroll #tray { left: 446px; top: 313px; bottom: auto; display: grid; grid-template-columns: 80px repeat(4, 73px); grid-template-rows: repeat(3, 62px) auto; gap: 6px 5px;
-  padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; transform: none; opacity: 0; pointer-events: none; transition: opacity .3s; }
-#stage.map-scroll #tray.on { opacity: 1; pointer-events: auto; transform: none; }
+  padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; transform: none; } /* shows and hides like the bar (#tray) */
 #stage.map-scroll #tray.pulse { animation: none; }
 #stage.map-scroll #tray .display { display: none; }
 #stage.map-scroll #tray .signs { grid-column: 1; grid-row: 1 / 4; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
@@ -668,15 +669,6 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 
 /* Chambers 1–3 intro and keys: lines are voice only, so no speech box (tap anywhere or Enter continues) */
 
-/* Chamber 1: rules dropdown under the ? button (placed by toggleRules) */
-#rulesDrop { position: absolute; z-index: 5; width: 240px; box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; gap: 5px;
-  background: rgba(12,18,48,.85); border: 2px solid rgba(255,255,255,.9); border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,.5);
-  opacity: 0; visibility: hidden; transform: translateY(-8px) scale(.96); transform-origin: 140px 0; transition: opacity .2s, transform .25s, visibility 0s .25s; }
-#rulesDrop.on { opacity: 1; visibility: visible; transform: none; transition: opacity .2s, transform .25s; }
-#rulesDrop::before { content: ''; position: absolute; top: -10px; left: 131px; border: 9px solid transparent; border-top: 0; border-bottom-color: #fff; }
-#rulesDrop .rc { font: 600 13px/1.25 'Baloo 2', sans-serif; white-space: nowrap; padding: 3px 9px; border-radius: 10px; gap: 6px; box-shadow: 0 2px 0 rgba(0,0,0,.3); }
-#rulesDrop .rc b { font-size: 15px; min-width: 30px; white-space: nowrap; }
-#btnHelp.active { background: rgba(10,14,40,.9); font-size: 24px; }
 
 /* Chamber 1 map unlock on the scroll (map 736×491 on the paper at 275,146), over the blurred chamber */
 #stage.unlock-scroll .bg { filter: blur(6px) brightness(.8); }
@@ -700,7 +692,6 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #stage.map-ui.theme-cavern:not(.map-scroll) #tablet.on { opacity: 0; }
 
 /* ? only during the game part (key hunt, map puzzles); pause keeps its place */
-#stage:not(.playing) #btnHelp { visibility: hidden; pointer-events: none; }
 
 /* Chamber 1: the hidden key box above the right stone (the explorer's head reaches it at the top of the jump) */
 .keybox { position: absolute; top: -256px; width: 66px; height: 66px; margin-left: -33px; opacity: 0; transform: scale(.4); pointer-events: none;
@@ -834,8 +825,10 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 
 
 /* guided tutorial: a bright, bouncy spotlight with twinkling stars, a tapping hand and the wizard's caption bubble */
-#coach { position: absolute; inset: 0; z-index: 66; display: none; pointer-events: none; }
-#coach.on { display: block; }
+/* the dimmed spotlight fades in and out (never snaps); hidden, it takes no taps and its loops rest */
+#coach { position: absolute; inset: 0; z-index: 66; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility 0s linear .25s; }
+#coach.on { opacity: 1; visibility: visible; transition: opacity .25s ease, visibility 0s; }
+#coach:not(.on) * { animation-play-state: paused; }
 #coach .co-block { position: absolute; inset: 0; pointer-events: auto; }
 #coach .co-ring { position: absolute; border: 5px solid #ffe066; border-radius: 26px; pointer-events: none;
   box-shadow: 0 0 0 9999px rgba(20,8,48,.5), 0 0 26px 8px rgba(255,214,90,.85), inset 0 0 16px rgba(255,236,150,.7);
@@ -953,7 +946,7 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 .actor.runsheet .bob img { visibility: hidden; position: absolute; }
 
 /* the answer hand (after the 4th wrong try): taps on the right stone / the next key to press */
-.answer-hand { position: absolute; left: 50%; top: 50%; width: 0; height: 0; z-index: 5; pointer-events: none; }
+.answer-hand { position: absolute; left: 50%; top: 50%; width: 0; height: 0; z-index: 5; pointer-events: none; animation: fadeIn .3s ease-out; }
 .answer-hand i { position: absolute; left: -30px; top: -30px; width: 60px; height: 60px; border-radius: 50%; border: 5px solid #fff; box-shadow: 0 0 14px #ffd54a; animation: coRipple 1s ease-out infinite; }
 .answer-hand b { position: absolute; left: -18px; top: 2px; font-size: 64px; line-height: 1; font-weight: normal; filter: drop-shadow(0 5px 5px rgba(0,0,0,.5)); animation: paTap 1s ease-in-out infinite; }
 #tray .k { position: relative; }
@@ -963,21 +956,26 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #nl .stone .answer-hand b { font-size: 76px; }
 #stage.cast-now #scroll, #stage.cast-now #pathArt { transition: none !important; } /* unroll in place, no slide */
 
-/* pause and ? buttons: the round purple-and-gold art (the drawn icon shows if the art is missing) */
-#stage.has-ui_btn_pause #btnPause, #stage.has-ui_btn_hint #btnHelp { border: 0; background: none; box-shadow: none; color: transparent; font-size: 0; filter: drop-shadow(0 3px 5px rgba(0,0,0,.45)); }
+/* back (top left) and pause (top right): the same size and place on every screen — story, chambers and maps —
+   mirror images of each other; they stay up through the whole story and game (the cover sits over them) */
+#stage #btnBack, #stage #btnPause { position: absolute; top: 43.9px; width: 48px; height: 48px; z-index: 6; }
+#stage #btnBack { left: 48px; } #stage #btnPause { right: 48px; }
+/* the round purple-and-gold art (the drawn icon shows if the art is missing) */
+#stage.has-ui_btn_pause #btnPause { border: 0; background: none; box-shadow: none; color: transparent; font-size: 0; filter: drop-shadow(0 3px 5px rgba(0,0,0,.45)); }
 #stage.has-ui_btn_pause #btnPause { background: var(--a-ui_btn_pause) center / 100% 100% no-repeat; }
-#stage.has-ui_btn_hint #btnHelp { background: var(--a-ui_btn_hint) center / 100% 100% no-repeat; }
 #stage.has-ui_btn_pause #btnPause svg { display: none; }
-#stage #btnPause, #stage #btnHelp { width: 54px; height: 54px; }
-#stage.theme-cavern .hud-right #btnPause, #stage.theme-cavern .hud-right #btnHelp { width: 48px; height: 48px; }
-#stage.has-ui_btn_hint #btnHelp.active { background-color: transparent; filter: drop-shadow(0 0 10px rgba(255,213,74,.95)) brightness(1.12); }
-#btnPause:hover, #btnHelp:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.45)) brightness(1.1); }
-/* the pause button stays on screen through the whole story and game (the cover hides it) */
-#stage:not(.theme-cavern) .hud-right { display: flex; }
-#stage:not(.theme-cavern) .hud-right > :not(#btnPause) { display: none; }
+#btnPause:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.45)) brightness(1.1); }
+#stage.has-ui_btn_back #btnBack { border: 0; box-shadow: none; color: transparent; font-size: 0; filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
+  background: var(--a-ui_btn_back) center / 100% 100% no-repeat; }
+#stage.has-ui_btn_back #btnBack svg { display: none; }
+#btnBack:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.45)) brightness(1.1); }
 
 /* the equation glows while "The next key is at…" is spoken */
-#tablet.eq-hl { animation: eqGlow 1s ease-in-out infinite; }
+#tablet.eq-hl { animation: eqGlowIn .3s ease-out, eqGlow 1s ease-in-out .3s infinite; }
+/* the glow eases in, and eases out when the line ends (eq-out), so the sign never flickers */
+@keyframes eqGlowIn { from { filter: drop-shadow(0 0 0 rgba(255,224,102,0)); } to { filter: drop-shadow(0 0 6px rgba(255,224,102,.6)); } }
+#tablet.eq-out { animation: eqGlowOut .45s ease-out; }
+@keyframes eqGlowOut { from { filter: drop-shadow(0 0 12px rgba(255,224,102,.8)); } to { filter: drop-shadow(0 0 0 rgba(255,224,102,0)); } }
 @keyframes eqGlow { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255,224,102,.6)); } 50% { filter: drop-shadow(0 0 20px #ffe066) drop-shadow(0 0 8px #fff3a8); } } /* glow only: the panel keeps its size */
 /* a tutorial step can be a spotlight with no hand */
 #coach.no-hand .co-hand { display: none; }
@@ -991,7 +989,12 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 /* the map flies in rolled up, then unrolls once it lands */
 #scroll.unroll.late, #pathArt.unroll.late { animation-delay: .65s; animation-fill-mode: backwards; }
 /* on the parchment the gold glow is lost: map puzzles glow violet with a white rim */
-#tablet.eq-hl.eq-map { animation-name: eqGlowMap; }
+#tablet.eq-hl.eq-map { animation-name: eqGlowInMap, eqGlowMap; }
+@keyframes eqGlowInMap { from { filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 0 rgba(123,44,255,0)) drop-shadow(0 0 0 rgba(123,44,255,0)); }
+  to { filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 14px #7b2cff) drop-shadow(0 0 6px #7b2cff); } }
+#tablet.eq-out.eq-map { animation-name: eqGlowOutMap; }
+@keyframes eqGlowOutMap { from { filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 22px #7b2cff) drop-shadow(0 0 10px #7b2cff); }
+  to { filter: drop-shadow(0 0 0 rgba(255,255,255,0)) drop-shadow(0 0 0 rgba(123,44,255,0)) drop-shadow(0 0 0 rgba(123,44,255,0)); } }
 @keyframes eqGlowMap { 0%, 100% { filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 14px #7b2cff) drop-shadow(0 0 6px #7b2cff); } 50% { filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 30px #6a1bff) drop-shadow(0 0 14px #9b5cff); } }
 
 /* Chamber 3's solved example (solvedExample in game.js): what the explorer is talking about glows gold,
@@ -1017,3 +1020,46 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #stage.demo-walk #nl .stone.trail { filter: drop-shadow(0 0 10px rgba(255,213,74,.95)); }
 #stage.demo-walk #nl .stone.trail .lbl { background: linear-gradient(#fff6c8, #ffd760); border-color: #d48a10; box-shadow: inset 0 0 0 3px #f2a922; }
 
+
+/* sign rules card (signRules in game.js): each rule beside its example, walked on a little number line */
+#signRules .sr-panel { width: 1060px; box-sizing: border-box; padding: 18px 30px 22px; }
+#signRules h2 { margin: 0 0 2px; font-size: 38px; }
+#signRules .sr-sub { margin: 0 0 12px; font: 600 20px/1.2 'Baloo 2', sans-serif; color: #e8d6ff; }
+#signRules .sr-list { display: flex; flex-direction: column; gap: 10px; }
+.sr-row { position: relative; display: grid; grid-template-columns: 150px 320px 1fr; gap: 16px; align-items: center; text-align: left; padding: 8px 16px 10px; border-radius: 18px; cursor: pointer;
+  background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.18); animation: srIn .45s cubic-bezier(.2,1.3,.4,1) both; transition: border-color .3s, background-color .3s, box-shadow .3s; }
+.sr-row:nth-child(2) { animation-delay: .12s; } .sr-row:nth-child(3) { animation-delay: .24s; } .sr-row:nth-child(4) { animation-delay: .36s; }
+@keyframes srIn { from { opacity: 0; transform: translateY(18px); } }
+.sr-row:hover { background-color: rgba(255,255,255,.11); }
+.sr-row.playing { border-color: rgba(255,213,74,.75); background-color: rgba(255,213,74,.1); }
+.sr-row.focus { border-color: #ffd54a; box-shadow: 0 0 0 3px rgba(255,213,74,.35), 0 0 24px rgba(255,213,74,.55); }
+.sr-row.mine { border-style: dashed; border-color: rgba(108,203,255,.75); background-color: rgba(108,203,255,.1); }
+.sr-tag { position: absolute; right: 14px; top: -13px; padding: 2px 12px; border-radius: 12px; background: var(--gold); color: var(--ink); font: 15px 'Lilita One', sans-serif; font-style: normal; box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.sr-signs { font: 34px/1.1 'Lilita One', sans-serif; color: #fff; white-space: nowrap; text-align: center; }
+.sr-signs small { display: block; font-size: 16px; color: #9fe0ff; letter-spacing: .03em; }
+.sr-what b { display: block; font: 21px/1.15 'Lilita One', sans-serif; font-weight: 400; color: var(--gold); }
+.sr-what span { display: block; margin-top: 2px; font: 600 17px/1.25 'Baloo 2', sans-serif; color: #f1e6ff; }
+.sr-eq { margin-bottom: 18px; font: 28px/1 'Lilita One', sans-serif; color: #fff; white-space: nowrap; }
+.sr-ans { display: inline-block; min-width: 1ch; color: var(--gold); }
+.sr-row.done .sr-ans { animation: bump .45s cubic-bezier(.2,1.8,.4,1); }
+.sr-line { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 3px; }
+.sr-cell { height: 34px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font: 16px 'Lilita One', sans-serif; font-style: normal;
+  background: linear-gradient(#9b968f, #6d6862); box-shadow: 0 3px 0 #3d3934; transition: transform .2s, background .2s, box-shadow .2s; }
+.sr-line.tight .sr-cell { font-size: 13px; letter-spacing: -.02em; }
+.sr-cell span { text-shadow: 0 1px 0 rgba(0,0,0,.55); }
+.sr-cell.zero { background: linear-gradient(#ffe48a, #c9921f); }
+.sr-cell.zero span { color: #5a3a00; text-shadow: none; }
+.sr-cell.st { outline: 3px solid #fff; outline-offset: -1px; }
+.sr-cell.hl { background: linear-gradient(#fff1b0, #ffc94a); box-shadow: 0 3px 0 #a86f0a, 0 0 10px #ffd54a; transform: translateY(-4px); }
+.sr-cell.hl span { color: #5a2d00; text-shadow: none; }
+.sr-cell.land { background: linear-gradient(#a6f5b2, #3ccf62); box-shadow: 0 3px 0 #1d7a34, 0 0 14px rgba(120,255,150,.9); transform: translateY(-6px) scale(1.12); }
+.sr-cell.land span { color: #0e3d18; text-shadow: none; }
+/* the arrow grows a stone at a time from the start stone; its head points the way the sign sends you */
+.sr-arrow { position: absolute; top: -15px; height: 8px; width: 0; border-radius: 4px; background: var(--gold); box-shadow: 0 0 8px rgba(255,213,74,.8); pointer-events: none;
+  opacity: 0; transition: width var(--srms, .2s) linear, opacity .2s; }
+.sr-arrow.on { opacity: 1; }
+.sr-arrow::after { content: ''; position: absolute; top: 50%; right: -12px; margin-top: -9px; border-style: solid; border-color: transparent transparent transparent var(--gold); border-width: 9px 0 9px 13px; }
+.sr-arrow.back::after { right: auto; left: -12px; border-color: transparent var(--gold) transparent transparent; border-width: 9px 13px 9px 0; }
+#btnRules { margin-top: 16px; opacity: 0; visibility: hidden; transform: translateY(10px); transition: opacity .3s, transform .35s cubic-bezier(.2,1.3,.4,1), visibility 0s .35s; }
+#btnRules.on { opacity: 1; visibility: visible; transform: none; transition: opacity .3s, transform .35s cubic-bezier(.2,1.3,.4,1); animation: contGlow 1.6s ease-in-out .4s infinite; }
+#btnRules.on:active { transform: translateY(5px); }
