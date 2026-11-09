@@ -83,11 +83,15 @@ const retrigger = (el, c) => { el.classList.remove(c); void el.offsetWidth; el.c
 
 /* ---------- stage scaling ---------- */
 let scale = 1;
+// the largest scale that fits the app area (the screen less any notch), refitted when the window, the device's
+// orientation or the mobile browser's toolbars change the space
 function fit() {
-  scale = Math.min(innerWidth / STAGE_W, innerHeight / STAGE_H);
+  const app = $('#app'), w = app.clientWidth || innerWidth, h = app.clientHeight || innerHeight;
+  scale = Math.min(w / STAGE_W, h / STAGE_H);
   stage.style.setProperty('--s', scale);
 }
-addEventListener('resize', fit);
+addEventListener('resize', fit); addEventListener('orientationchange', fit);
+if (window.visualViewport) visualViewport.addEventListener('resize', fit);
 function stagePos(el) {
   const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
   return { x: (r.left + r.width / 2 - s.left) / scale, y: (r.top + r.height / 2 - s.top) / scale };
@@ -95,7 +99,11 @@ function stagePos(el) {
 
 /* ---------- backgrounds ---------- */
 let bgFlip = false, bgNow = '';
+// the scene, blurred, also fills any space around the stage
+// (a full address: a relative one inside a CSS variable would be read from the stylesheet's folder, not the page's)
+const backdrop = name => document.body.style.setProperty('--backdrop', `url("${new URL(ASSET(name), document.baseURI).href}")`);
 function setBg(name) {
+  backdrop(name); // even for the same scene: the home screen swaps in the cover art around it
   if (bgNow === name) return; bgNow = name; stage.dataset.bg = name;
   const a = $(bgFlip ? '#bgA' : '#bgB'), b = $(bgFlip ? '#bgB' : '#bgA');
   a.style.backgroundImage = `url(${ASSET(name)})`; a.classList.add('on'); b.classList.remove('on'); bgFlip = !bgFlip;
@@ -908,7 +916,7 @@ async function teach(L) {
 /* ---------- guided tutorial: a short, playful spotlight on only the controls a child must use.
    Chamber 1 key 1: the arrows, then JUMP. Chamber 1 map puzzle 1: + / −, the number, then CHECK. ---------- */
 const Coach = (() => {
-  let box = null, targets = [], track = null, side = false, handEl = null;
+  let box = null, targets = [], track = 0, side = false, handEl = null, last = '', fadeT = null;
   function rectOf(el) {
     let r = el.getBoundingClientRect();
     // a wrapper with no box of its own (the keypad's number keys sit straight in the keypad grid): use the area its buttons cover
@@ -924,6 +932,16 @@ const Coach = (() => {
     const rs = targets.map(rectOf), x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y));
     return { x, y, w: Math.max(...rs.map(r => r.x + r.w)) - x, h: Math.max(...rs.map(r => r.y + r.h)) - y };
   };
+  // wait until the controls stop moving (the sign drops in on its ropes, the pads slide up), so the spotlight never
+  // opens on a spot they are only passing through and never trails after them; gives up after maxMs
+  async function settled(maxMs = 1200) {
+    let prev = '', same = 0;
+    for (const t0 = performance.now(); performance.now() - t0 < maxMs;) {
+      await new Promise(res => requestAnimationFrame(res));
+      const u = union(), k = [u.x, u.y, u.w, u.h].map(Math.round).join();
+      if (k !== prev) { prev = k; same = 0; } else if (++same >= 4) return;
+    }
+  }
   function build() {
     box = document.createElement('div'); box.id = 'coach';
     box.innerHTML = '<div class="co-block"></div>'
@@ -943,8 +961,11 @@ const Coach = (() => {
   function place() {
     if (!targets.length || !box) return;
     const r = union(), pad = 12, ring = box.querySelector('.co-ring'), card = box.querySelector('.co-card'), hand = box.querySelector('.co-hand');
-    Object.assign(ring.style, { left: `${r.x - pad}px`, top: `${r.y - pad}px`, width: `${r.w + pad * 2}px`, height: `${r.h + pad * 2}px` });
     const he = typeof handEl === 'function' ? handEl() : handEl, hr = he ? rectOf(he) : r; // the hand points at the control to press next
+    // only when something moved: rewriting the same place every frame would keep restarting the glide
+    const key = [r.x, r.y, r.w, r.h, hr.x, hr.y, hr.w, hr.h].map(v => Math.round(v * 2)).join();
+    if (key === last) return; last = key;
+    Object.assign(ring.style, { left: `${r.x - pad}px`, top: `${r.y - pad}px`, width: `${r.w + pad * 2}px`, height: `${r.h + pad * 2}px` });
     hand.style.left = `${hr.x + hr.w / 2}px`; hand.style.top = `${hr.y + hr.h - 8}px`;
     const cw = side ? 340 : 400, ch = 96;
     card.style.width = `${cw}px`;
@@ -961,11 +982,23 @@ const Coach = (() => {
     const r = RUN;
     targets = [].concat(els).filter(Boolean); if (!targets.length) return;
     if (!box) build();
+    clearTimeout(fadeT); // a step straight after a cheer: the spotlight stays up and glides on
+    track++; await settled(); guard(r); // the last step's follow stops; the ring holds still until the new controls are
+    const ring = box.querySelector('.co-ring'), handIco = box.querySelector('.co-hand');
+    // first appearance (or after it has faded out): the ring is put straight on the control and pops in;
+    // while it is up, it glides on to the next control instead of popping again
+    const fresh = !box.classList.contains('on') && +getComputedStyle(box).opacity < .05;
+    const handBack = box.classList.contains('no-hand') && hand !== false; // the hand reappears where it's needed, not sliding over
     side = beside; handEl = hand; box.classList.toggle('no-hand', hand === false); // hand false: spotlight only
     box.querySelector('.co-card p').textContent = text;
-    box.classList.add('on'); retrigger(box.querySelector('.co-card'), 'pop'); retrigger(box.querySelector('.co-ring'), 'pop');
-    place(); clearInterval(track); track = setInterval(place, 120);
-    Sound.fx.pop();
+    last = '';
+    const snap = fresh ? [ring, handIco] : handBack ? [handIco] : [];
+    snap.forEach(e => e.classList.add('snap')); place(); void box.offsetWidth; snap.forEach(e => e.classList.remove('snap'));
+    box.classList.add('on');
+    if (fresh) { retrigger(box.querySelector('.co-card'), 'pop'); retrigger(ring, 'pop'); Sound.fx.pop(); }
+    // follows its control every frame (the keypad and the sign can still be sliding in)
+    const me = ++track, follow = () => { if (track !== me || !targets.length) return; place(); requestAnimationFrame(follow); };
+    requestAnimationFrame(follow);
     // no spoken tip: the script has none; the spotlight and the hand show what to do
     let poll = null;
     const done = new Promise(res => { poll = setInterval(() => { if (RUN !== r || until()) res('done'); }, 100); });
@@ -973,10 +1006,12 @@ const Coach = (() => {
     clearInterval(poll); guard(r);
     if (how === 'done') { // a little cheer for getting it right
       const u = union(); FX.burst(u.x + u.w / 2, u.y + u.h / 2, 18, 'star', 7); Sound.fx.sparkle();
-      box.classList.remove('on'); await wait(450); guard(r);
+      // the spotlight stays up through the cheer, so a next step glides on from here; with no next step it fades out
+      clearTimeout(fadeT); fadeT = setTimeout(() => box.classList.remove('on'), 650);
+      await wait(400); guard(r);
     }
   }
-  function end() { clearInterval(track); targets = []; if (box) box.classList.remove('on'); }
+  function end() { clearTimeout(fadeT); track++; targets = []; if (box) box.classList.remove('on'); }
   return { step, end };
 })();
 
@@ -1679,20 +1714,24 @@ function pauseGame() {
 }
 function closeMenu() {
   $('#pause').classList.remove('on');
-  if (!Clock.paused) return;
+  if (!Clock.paused || autoPaused) return; // away (another tab, or an upright phone): it carries on when they're back
   stage.classList.remove('paused'); Clock.resume(); Sound.hold(false); Voice.resume();
 }
 // leaving the tab or the window pauses the game on the spot (timers, animations, voice, music, effects);
 // coming back carries on from there. A game already paused from the menu stays paused until the menu is closed.
-let away = false, autoPaused = false;
+let away = false, autoPaused = false, focused = true;
 function setAway(a) {
   if (a === away) return; away = a;
   if (a) { Voice.away(true); Sound.away(true); if (!Clock.paused) { autoPaused = true; Clock.pause(); } }
   else { if (autoPaused) { autoPaused = false; Clock.resume(); } Sound.away(false); Voice.away(false); }
 }
-document.addEventListener('visibilitychange', () => setAway(document.hidden));
-addEventListener('blur', () => setAway(true));
-addEventListener('focus', () => setAway(document.hidden));
+// a phone held upright shows the "turn sideways" message (same query as #rotate in the CSS): the game waits behind it
+const ROTATE_Q = matchMedia('(orientation: portrait) and (max-width: 600px)');
+const checkAway = () => setAway(document.hidden || !focused || ROTATE_Q.matches);
+document.addEventListener('visibilitychange', checkAway);
+addEventListener('blur', () => { focused = false; checkAway(); });
+addEventListener('focus', () => { focused = true; checkAway(); });
+ROTATE_Q.addEventListener('change', checkAway);
 $('#pause').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) { if (e.target.id === 'pause') closeMenu(); return; }
   Sound.fx.tap();
@@ -1805,7 +1844,7 @@ $('#title .cv-motes').innerHTML = Array.from({ length: 26 }, (_, i) => {
 }).join('');
 function showTitle() {
   if (Clock.paused) closeMenu();
-  RUN++; resetUI(); setBg('bg_entrance'); QA.at('');
+  RUN++; resetUI(); setBg('bg_entrance'); backdrop('cover_bg'); QA.at(''); // the cover's own art around the stage
   retrigger($('#title'), 'on'); // replays the entrance each time the cover opens
   coverMusic();
 }
@@ -1851,7 +1890,7 @@ $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.in
  'bg_tunnel', 'bg_level1_amber_tunnel', 'bg_level2_crystal_spires', 'bg_level3_lava_sea', 'bg_map_table', 'bg_final_path', 'bg_treasure_chamber']
   .forEach(n => { const i = new Image(); i.src = ASSET(n); });
 fit(); paintToggles(); setGems(); showTitle();
-if (document.hidden) setAway(true); // opened in a background tab: it starts once it is looked at
+checkAway(); // opened in a background tab or on an upright phone: it starts once it is looked at, sideways
 if (document.fonts) document.fonts.ready.then(() => Tablet.fit()); // re-fit once the game font has loaded
 window.__tt = { goChapter, devButton, ctx: () => ({ step: QA.cur, label: QA.label, bg: bgNow }) };
 })();

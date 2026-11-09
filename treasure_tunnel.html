@@ -21,25 +21,29 @@
   --zero: #FFE066;     /* zero: gold */
   --ok: #3ED36B;
   box-sizing: border-box;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: dark;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%; /* phones don't enlarge the text when turned sideways */
 }
 :root:not([data-theme="light"]) { --page: #0E0817; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #0E0817; } }
 :root[data-theme="dark"] { --page: #0E0817; }
-html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+html { height: 100%; }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--page, #0E0817); overflow: hidden; }
-body { font-family: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif; color: #fff; -webkit-tap-highlight-color: transparent; user-select: none; }
+body { font-family: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif; color: #fff; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: manipulation; }
 button { font-family: inherit; cursor: pointer; }
 button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 
-#app { position: fixed; inset: 0; }
+/* responsive: the game is one 1280×720 stage, scaled to the largest size that fits the screen (fit() in game.js) and
+   centred. The app area keeps clear of notches and rounded corners; any space left around the stage shows the
+   current scene, blurred and dimmed (--backdrop, set with each background), instead of black bars. */
+body::before { content: ''; position: fixed; inset: -60px; pointer-events: none;
+  background: var(--backdrop, none) center / cover no-repeat; filter: blur(24px) brightness(.42) saturate(1.15); }
+#app { position: fixed; inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
 #stage {
   position: absolute; left: 50%; top: 50%; width: 1280px; height: 720px;
   transform: translate(-50%, -50%) scale(var(--s, 1)); transform-origin: center;
-  overflow: hidden; background: #000; border-radius: 6px;
+  overflow: hidden; background: #000; border-radius: 6px; box-shadow: 0 0 60px rgba(0,0,0,.55);
 }
 
 /* ---------- backgrounds ---------- */
@@ -353,7 +357,9 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #rotate { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: #140b20; color: #fff; z-index: 99; font: 700 24px 'Baloo 2'; text-align: center; padding: 30px; }
 .rot-ico { font-size: 64px; animation: rot 2s ease-in-out infinite; }
 @keyframes rot { 50% { transform: rotate(90deg); } }
-@media (orientation: portrait) and (max-width: 820px) { #rotate { display: flex; } }
+/* only phones held upright are asked to turn sideways (600px wide or less); tablets and larger screens play as they are.
+   The same query pauses the game while the message is up (ROTATE_Q in game.js) */
+@media (orientation: portrait) and (max-width: 600px) { #rotate { display: flex; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .05s !important; }
@@ -840,16 +846,22 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 #coach.on { opacity: 1; visibility: visible; transition: opacity .25s ease, visibility 0s; }
 #coach:not(.on) * { animation-play-state: paused; }
 #coach .co-block { position: absolute; inset: 0; pointer-events: auto; }
-#coach .co-ring { position: absolute; border: 5px solid #ffe066; border-radius: 26px; pointer-events: none;
-  box-shadow: 0 0 0 9999px rgba(20,8,48,.5), 0 0 26px 8px rgba(255,214,90,.85), inset 0 0 16px rgba(255,236,150,.7);
-  transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease; animation: coRing 1.2s ease-in-out infinite; }
-#coach .co-ring.pop { animation: coRingIn .45s cubic-bezier(.2,1.6,.4,1), coRing 1.2s .45s ease-in-out infinite; }
+/* the ring glides from one control to the next; the dim around it is drawn once and never animated (a screen-wide
+   shadow that pulses repaints the whole stage every frame), and the gold glow pulses on its own layers instead */
+#coach .co-ring { position: absolute; border: 5px solid #ffe066; border-radius: 26px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(20,8,48,.5);
+  transition: left .45s cubic-bezier(.4,0,.2,1), top .45s cubic-bezier(.4,0,.2,1), width .45s cubic-bezier(.4,0,.2,1), height .45s cubic-bezier(.4,0,.2,1); }
+#coach .co-ring::before, #coach .co-ring::after { content: ''; position: absolute; inset: -5px; border-radius: inherit; pointer-events: none; }
+#coach .co-ring::before { box-shadow: 0 0 26px 8px rgba(255,214,90,.85), inset 0 0 16px rgba(255,236,150,.7); }
+#coach .co-ring::after { box-shadow: 0 0 42px 14px rgba(255,214,90,1), inset 0 0 22px rgba(255,236,150,.9); opacity: 0; animation: coGlow 1.2s ease-in-out infinite; }
+#coach .co-ring.pop::before { animation: coGlowIn .5s cubic-bezier(.2,1.4,.4,1); } /* first appearance only */
+#coach .co-ring.snap, #coach .co-hand.snap { transition: none; } /* placed straight on its control, no slide in from the last one */
 #coach .co-star { position: absolute; font-style: normal; font-size: 26px; color: #fff3a8; text-shadow: 0 0 8px #ffd54a, 0 0 16px #ffb300; animation: coTwinkle 1.3s ease-in-out infinite; }
 #coach .co-star.s1 { left: -18px; top: -22px; }
 #coach .co-star.s2 { right: -16px; top: -14px; font-size: 20px; animation-delay: -.45s; }
 #coach .co-star.s3 { right: -20px; bottom: -18px; font-size: 22px; animation-delay: -.9s; }
 #coach .co-hand { position: absolute; display: block; font-size: 64px; line-height: 1; pointer-events: none;
-  filter: drop-shadow(0 5px 5px rgba(0,0,0,.5)); animation: coTap 1s ease-in-out infinite; }
+  filter: drop-shadow(0 5px 5px rgba(0,0,0,.5)); animation: coTap 1s ease-in-out infinite;
+  transition: left .45s cubic-bezier(.4,0,.2,1), top .45s cubic-bezier(.4,0,.2,1), opacity .25s ease; } /* glides from key to key */
 #coach .co-ripple { position: absolute; left: 30%; top: 2px; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
   border: 4px solid rgba(255,255,255,.9); animation: coRipple 1s ease-out infinite; }
 #coach .co-card { position: absolute; width: 400px; min-height: 96px; box-sizing: border-box; display: flex; align-items: center; gap: 14px;
@@ -858,8 +870,8 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
   box-shadow: 0 8px 0 #3b1478, 0 14px 26px rgba(0,0,0,.45); }
 #coach .co-card p { margin: 0; color: #fff; font: 30px/1.15 'Lilita One', sans-serif; letter-spacing: .01em; text-shadow: 0 3px 0 #3b1478; }
 #coach .co-card.pop { animation: coBounce .55s cubic-bezier(.2,1.6,.4,1) both; }
-@keyframes coRing { 50% { transform: scale(1.04); box-shadow: 0 0 0 9999px rgba(20,8,48,.5), 0 0 40px 14px rgba(255,214,90,1), inset 0 0 20px rgba(255,236,150,.9); } }
-@keyframes coRingIn { from { transform: scale(1.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes coGlow { 50% { opacity: 1; } }
+@keyframes coGlowIn { from { transform: scale(1.3); opacity: 0; } }
 @keyframes coTwinkle { 0%, 100% { transform: scale(.6) rotate(0); opacity: .5; } 50% { transform: scale(1.25) rotate(25deg); opacity: 1; } }
 @keyframes coTap { 0%, 100% { transform: translate(-30%, 10px); } 50% { transform: translate(-30%, -8px) scale(.92); } }
 @keyframes coRipple { 0%, 45% { transform: scale(.3); opacity: 0; } 55% { opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
@@ -988,7 +1000,7 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
 @keyframes eqGlowOut { from { filter: drop-shadow(0 0 12px rgba(255,224,102,.8)); } to { filter: drop-shadow(0 0 0 rgba(255,224,102,0)); } }
 @keyframes eqGlow { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255,224,102,.6)); } 50% { filter: drop-shadow(0 0 20px #ffe066) drop-shadow(0 0 8px #fff3a8); } } /* glow only: the panel keeps its size */
 /* a tutorial step can be a spotlight with no hand */
-#coach.no-hand .co-hand { display: none; }
+#coach.no-hand .co-hand { opacity: 0; } /* fades rather than vanishing */
 /* the 3rd-miss hint: a gold tag with the answer's number bobs over its stone */
 .answer-tag { position: absolute; top: -92px; z-index: 6; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 6px 16px 6px 10px; border-radius: 30px; pointer-events: none;
   background: linear-gradient(#fff3a8, #ffc83a); border: 4px solid #fff; box-shadow: 0 5px 0 #b06d00, 0 0 24px rgba(255,213,74,.9); font: 40px/1 'Lilita One', sans-serif; color: #5a2d00; opacity: 0; }
@@ -2062,11 +2074,15 @@ const retrigger = (el, c) => { el.classList.remove(c); void el.offsetWidth; el.c
 
 /* ---------- stage scaling ---------- */
 let scale = 1;
+// the largest scale that fits the app area (the screen less any notch), refitted when the window, the device's
+// orientation or the mobile browser's toolbars change the space
 function fit() {
-  scale = Math.min(innerWidth / STAGE_W, innerHeight / STAGE_H);
+  const app = $('#app'), w = app.clientWidth || innerWidth, h = app.clientHeight || innerHeight;
+  scale = Math.min(w / STAGE_W, h / STAGE_H);
   stage.style.setProperty('--s', scale);
 }
-addEventListener('resize', fit);
+addEventListener('resize', fit); addEventListener('orientationchange', fit);
+if (window.visualViewport) visualViewport.addEventListener('resize', fit);
 function stagePos(el) {
   const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
   return { x: (r.left + r.width / 2 - s.left) / scale, y: (r.top + r.height / 2 - s.top) / scale };
@@ -2074,7 +2090,11 @@ function stagePos(el) {
 
 /* ---------- backgrounds ---------- */
 let bgFlip = false, bgNow = '';
+// the scene, blurred, also fills any space around the stage
+// (a full address: a relative one inside a CSS variable would be read from the stylesheet's folder, not the page's)
+const backdrop = name => document.body.style.setProperty('--backdrop', `url("${new URL(ASSET(name), document.baseURI).href}")`);
 function setBg(name) {
+  backdrop(name); // even for the same scene: the home screen swaps in the cover art around it
   if (bgNow === name) return; bgNow = name; stage.dataset.bg = name;
   const a = $(bgFlip ? '#bgA' : '#bgB'), b = $(bgFlip ? '#bgB' : '#bgA');
   a.style.backgroundImage = `url(${ASSET(name)})`; a.classList.add('on'); b.classList.remove('on'); bgFlip = !bgFlip;
@@ -2887,7 +2907,7 @@ async function teach(L) {
 /* ---------- guided tutorial: a short, playful spotlight on only the controls a child must use.
    Chamber 1 key 1: the arrows, then JUMP. Chamber 1 map puzzle 1: + / −, the number, then CHECK. ---------- */
 const Coach = (() => {
-  let box = null, targets = [], track = null, side = false, handEl = null;
+  let box = null, targets = [], track = 0, side = false, handEl = null, last = '', fadeT = null;
   function rectOf(el) {
     let r = el.getBoundingClientRect();
     // a wrapper with no box of its own (the keypad's number keys sit straight in the keypad grid): use the area its buttons cover
@@ -2903,6 +2923,16 @@ const Coach = (() => {
     const rs = targets.map(rectOf), x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y));
     return { x, y, w: Math.max(...rs.map(r => r.x + r.w)) - x, h: Math.max(...rs.map(r => r.y + r.h)) - y };
   };
+  // wait until the controls stop moving (the sign drops in on its ropes, the pads slide up), so the spotlight never
+  // opens on a spot they are only passing through and never trails after them; gives up after maxMs
+  async function settled(maxMs = 1200) {
+    let prev = '', same = 0;
+    for (const t0 = performance.now(); performance.now() - t0 < maxMs;) {
+      await new Promise(res => requestAnimationFrame(res));
+      const u = union(), k = [u.x, u.y, u.w, u.h].map(Math.round).join();
+      if (k !== prev) { prev = k; same = 0; } else if (++same >= 4) return;
+    }
+  }
   function build() {
     box = document.createElement('div'); box.id = 'coach';
     box.innerHTML = '<div class="co-block"></div>'
@@ -2922,8 +2952,11 @@ const Coach = (() => {
   function place() {
     if (!targets.length || !box) return;
     const r = union(), pad = 12, ring = box.querySelector('.co-ring'), card = box.querySelector('.co-card'), hand = box.querySelector('.co-hand');
-    Object.assign(ring.style, { left: `${r.x - pad}px`, top: `${r.y - pad}px`, width: `${r.w + pad * 2}px`, height: `${r.h + pad * 2}px` });
     const he = typeof handEl === 'function' ? handEl() : handEl, hr = he ? rectOf(he) : r; // the hand points at the control to press next
+    // only when something moved: rewriting the same place every frame would keep restarting the glide
+    const key = [r.x, r.y, r.w, r.h, hr.x, hr.y, hr.w, hr.h].map(v => Math.round(v * 2)).join();
+    if (key === last) return; last = key;
+    Object.assign(ring.style, { left: `${r.x - pad}px`, top: `${r.y - pad}px`, width: `${r.w + pad * 2}px`, height: `${r.h + pad * 2}px` });
     hand.style.left = `${hr.x + hr.w / 2}px`; hand.style.top = `${hr.y + hr.h - 8}px`;
     const cw = side ? 340 : 400, ch = 96;
     card.style.width = `${cw}px`;
@@ -2940,11 +2973,23 @@ const Coach = (() => {
     const r = RUN;
     targets = [].concat(els).filter(Boolean); if (!targets.length) return;
     if (!box) build();
+    clearTimeout(fadeT); // a step straight after a cheer: the spotlight stays up and glides on
+    track++; await settled(); guard(r); // the last step's follow stops; the ring holds still until the new controls are
+    const ring = box.querySelector('.co-ring'), handIco = box.querySelector('.co-hand');
+    // first appearance (or after it has faded out): the ring is put straight on the control and pops in;
+    // while it is up, it glides on to the next control instead of popping again
+    const fresh = !box.classList.contains('on') && +getComputedStyle(box).opacity < .05;
+    const handBack = box.classList.contains('no-hand') && hand !== false; // the hand reappears where it's needed, not sliding over
     side = beside; handEl = hand; box.classList.toggle('no-hand', hand === false); // hand false: spotlight only
     box.querySelector('.co-card p').textContent = text;
-    box.classList.add('on'); retrigger(box.querySelector('.co-card'), 'pop'); retrigger(box.querySelector('.co-ring'), 'pop');
-    place(); clearInterval(track); track = setInterval(place, 120);
-    Sound.fx.pop();
+    last = '';
+    const snap = fresh ? [ring, handIco] : handBack ? [handIco] : [];
+    snap.forEach(e => e.classList.add('snap')); place(); void box.offsetWidth; snap.forEach(e => e.classList.remove('snap'));
+    box.classList.add('on');
+    if (fresh) { retrigger(box.querySelector('.co-card'), 'pop'); retrigger(ring, 'pop'); Sound.fx.pop(); }
+    // follows its control every frame (the keypad and the sign can still be sliding in)
+    const me = ++track, follow = () => { if (track !== me || !targets.length) return; place(); requestAnimationFrame(follow); };
+    requestAnimationFrame(follow);
     // no spoken tip: the script has none; the spotlight and the hand show what to do
     let poll = null;
     const done = new Promise(res => { poll = setInterval(() => { if (RUN !== r || until()) res('done'); }, 100); });
@@ -2952,10 +2997,12 @@ const Coach = (() => {
     clearInterval(poll); guard(r);
     if (how === 'done') { // a little cheer for getting it right
       const u = union(); FX.burst(u.x + u.w / 2, u.y + u.h / 2, 18, 'star', 7); Sound.fx.sparkle();
-      box.classList.remove('on'); await wait(450); guard(r);
+      // the spotlight stays up through the cheer, so a next step glides on from here; with no next step it fades out
+      clearTimeout(fadeT); fadeT = setTimeout(() => box.classList.remove('on'), 650);
+      await wait(400); guard(r);
     }
   }
-  function end() { clearInterval(track); targets = []; if (box) box.classList.remove('on'); }
+  function end() { clearTimeout(fadeT); track++; targets = []; if (box) box.classList.remove('on'); }
   return { step, end };
 })();
 
@@ -3658,20 +3705,24 @@ function pauseGame() {
 }
 function closeMenu() {
   $('#pause').classList.remove('on');
-  if (!Clock.paused) return;
+  if (!Clock.paused || autoPaused) return; // away (another tab, or an upright phone): it carries on when they're back
   stage.classList.remove('paused'); Clock.resume(); Sound.hold(false); Voice.resume();
 }
 // leaving the tab or the window pauses the game on the spot (timers, animations, voice, music, effects);
 // coming back carries on from there. A game already paused from the menu stays paused until the menu is closed.
-let away = false, autoPaused = false;
+let away = false, autoPaused = false, focused = true;
 function setAway(a) {
   if (a === away) return; away = a;
   if (a) { Voice.away(true); Sound.away(true); if (!Clock.paused) { autoPaused = true; Clock.pause(); } }
   else { if (autoPaused) { autoPaused = false; Clock.resume(); } Sound.away(false); Voice.away(false); }
 }
-document.addEventListener('visibilitychange', () => setAway(document.hidden));
-addEventListener('blur', () => setAway(true));
-addEventListener('focus', () => setAway(document.hidden));
+// a phone held upright shows the "turn sideways" message (same query as #rotate in the CSS): the game waits behind it
+const ROTATE_Q = matchMedia('(orientation: portrait) and (max-width: 600px)');
+const checkAway = () => setAway(document.hidden || !focused || ROTATE_Q.matches);
+document.addEventListener('visibilitychange', checkAway);
+addEventListener('blur', () => { focused = false; checkAway(); });
+addEventListener('focus', () => { focused = true; checkAway(); });
+ROTATE_Q.addEventListener('change', checkAway);
 $('#pause').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) { if (e.target.id === 'pause') closeMenu(); return; }
   Sound.fx.tap();
@@ -3784,7 +3835,7 @@ $('#title .cv-motes').innerHTML = Array.from({ length: 26 }, (_, i) => {
 }).join('');
 function showTitle() {
   if (Clock.paused) closeMenu();
-  RUN++; resetUI(); setBg('bg_entrance'); QA.at('');
+  RUN++; resetUI(); setBg('bg_entrance'); backdrop('cover_bg'); QA.at(''); // the cover's own art around the stage
   retrigger($('#title'), 'on'); // replays the entrance each time the cover opens
   coverMusic();
 }
@@ -3830,7 +3881,7 @@ $('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.in
  'bg_tunnel', 'bg_level1_amber_tunnel', 'bg_level2_crystal_spires', 'bg_level3_lava_sea', 'bg_map_table', 'bg_final_path', 'bg_treasure_chamber']
   .forEach(n => { const i = new Image(); i.src = ASSET(n); });
 fit(); paintToggles(); setGems(); showTitle();
-if (document.hidden) setAway(true); // opened in a background tab: it starts once it is looked at
+checkAway(); // opened in a background tab or on an upright phone: it starts once it is looked at, sideways
 if (document.fonts) document.fonts.ready.then(() => Tablet.fit()); // re-fit once the game font has loaded
 window.__tt = { goChapter, devButton, ctx: () => ({ step: QA.cur, label: QA.label, bg: bgNow }) };
 })();
