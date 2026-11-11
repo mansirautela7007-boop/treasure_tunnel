@@ -73,8 +73,6 @@ function sourceOf(el) {
   if (el.dataset.actor) return `actor('${el.dataset.actor}', …) in js/game.js`;
   if (el.id === 'nlExp' || el.closest('#nl')) return 'number line, NL.build() in js/game.js (.stone etc. in css/style.css)';
   if (el.classList.contains('prop')) return `prop('${el.classList[1] || ''}') in SCENES, js/game.js`;
-  if (el.closest('#mapView')) return 'map, MapView + MAP data in js/game.js';
-  if (el.closest('#demo')) return 'how-to-play demo, runHowTo() in js/game.js';
   const idEl = el.id ? el : el.parentElement && el.parentElement.closest('[id]');
   return idEl ? `#${idEl.id}${el === idEl ? '' : ' (inside)'}: markup in index.html, styles in css/style.css` : '';
 }

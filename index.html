@@ -4,9 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Treasure Tunnel – An Integers Adventure</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='18,36 34,14 66,14 82,36 50,90' fill='%23ffd54a' stroke='%237a4a00' stroke-width='6' stroke-linejoin='round'/%3E%3Cpolygon points='18,36 82,36 50,90' fill='%23e39b1f'/%3E%3Cpolygon points='34,14 50,36 66,14' fill='%23fff3b0'/%3E%3C/svg%3E"><!-- inline: no favicon request -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Lilita+One&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Lilita+One&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -18,24 +19,11 @@
     <div id="world"></div>
     <div id="nlWrap"><div id="nl"></div></div>
 
-    <div id="mapView">
-      <div id="mapPieces"></div>
-      <svg id="mapPaths" viewBox="0 0 1200 800"></svg>
-      <div id="mapSeals"></div>
-      <div id="mapToken"></div>
-    </div>
-
     <canvas id="fx" width="1280" height="720"></canvas>
 
     <div id="ui">
       <div id="hud">
         <div id="slots" aria-label="Collected items"></div>
-        <div id="levelName"></div>
-        <div class="hud-right">
-          <div id="gems" title="Gems for first-try answers"><span class="gem-ico"></span><span id="gemCount">0</span></div>
-          <button class="icon-btn" id="btnVoice" aria-label="Voice on or off"></button>
-          <button class="icon-btn" id="btnSound" aria-label="Sound on or off"></button>
-        </div>
       </div>
       <!-- back and pause: one size and place on every screen (story, chambers, maps) -->
       <button class="icon-btn" id="btnBack" aria-label="Back one step"></button>
@@ -44,10 +32,7 @@
       <div id="pathArt"><div class="pa-img"></div><svg class="pa-svg"><path class="pa-lit"/><path class="pa-glow"/><path class="pa-hit"/></svg><div class="pa-token"></div></div>
       <div id="scroll" aria-hidden="true"><div class="roll l"></div><div class="sheet"></div><div class="roll r"></div></div>
       <div id="tablet" aria-live="polite"></div>
-      <div id="ruleChip"></div>
       <div id="hintArrow"></div>
-      <div id="miniLine"></div>
-      <div id="demo"></div>
 
       <div id="bubble">
         <img class="av" alt="">
@@ -55,7 +40,6 @@
           <div class="who"></div>
           <div class="txt" aria-live="polite"></div>
         </div>
-        <button class="replay" id="btnReplay" aria-label="Hear it again"></button>
       </div>
 
       <div id="tray" aria-label="Number pad">
@@ -75,7 +59,6 @@
         <button class="mv right" data-dir="right" aria-label="Move right"><span class="t">Right </span><svg class="ico flip" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 7 L7 20 L20 33 M8 20 H34" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arr">▶</span></button>
       </div>
 
-      <button id="btnContinue" class="bigbtn">Continue</button>
       <div id="toast"></div>
     </div>
 
@@ -109,7 +92,16 @@
       <button id="btnStart" class="cv-start" aria-label="Start">
         <span class="cv-pulse"><img data-asset="cover_start" alt=""><i class="cv-shine"></i></span>
       </button>
+      <!-- in Start's place until every file is loaded (js/preload.js) -->
+      <div id="loadBar" class="cv-load" role="progressbar" aria-label="Loading the game" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="cv-load-track"><i class="cv-load-fill"></i></div>
+        <p class="cv-load-txt">Loading the adventure… <b>0%</b></p>
+      </div>
+      <!-- Start's burst of gold when tapped (rays and sparks, game.js) -->
+      <div class="cv-burst" aria-hidden="true"></div>
     </div>
+    <!-- the tunnel's light fills the screen, then opens like an iris onto the story -->
+    <div id="warp" aria-hidden="true"></div>
 
     <div id="pause" class="overlay modal" role="dialog" aria-label="Menu">
       <div class="panel">
@@ -127,16 +119,6 @@
           <button class="pill" data-go="2">Crystal Cavern</button>
           <button class="pill" data-go="end">Treasure</button>
         </div>
-      </div>
-    </div>
-
-    <div id="badgeModal" class="overlay modal" role="dialog" aria-label="Badge earned">
-      <div class="panel badge-panel">
-        <div class="rays"></div>
-        <div class="badge-art"></div>
-        <h2 class="badge-name"></h2>
-        <p class="badge-sub"></p>
-        <button class="bigbtn" id="btnBadge">Next chamber</button>
       </div>
     </div>
 
@@ -160,7 +142,9 @@
   </div>
   <div id="rotate"><div class="rot-ico">📱</div><p>Turn your device sideways to play</p></div>
 </div>
+<script src="js/manifest.js"></script>
 <script src="js/data.js"></script>
+<script src="js/preload.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/game.js"></script>
 <script src="js/editor.js"></script>

@@ -3,9 +3,13 @@
 'use strict';
 
 const $ = s => document.querySelector(s);
-// art is .webp unless listed here (the single-file build embeds every format under its name)
-const ASSET_EXT = { cover_start: 'png', ui_btn_pause: 'png', ui_btn_back: 'png', bg_level3_lava_sea: 'jpg', bg_level2_crystal_spires: 'jpg' };
-const ASSET = n => (window.ASSETS && window.ASSETS[n]) || `assets/${n}.${ASSET_EXT[n] || 'webp'}`;
+// art by name (js/manifest.js has the files): the preloaded local copy once it's here, else the file
+const ASSET = n => Preload.url(n);
+// a local copy that fails to show is swapped back to the file itself, once
+document.addEventListener('error', e => {
+  const el = e.target;
+  if (el && el.tagName === 'IMG' && Preload.isBlob(el.src) && !el._retried) { el._retried = true; el.src = Preload.original(el.src); }
+}, true);
 const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let STEP = 112; // stone spacing, set per level in NL.build
 const MIN = -25, MAX = 25;
@@ -18,17 +22,12 @@ const cls = v => v > 0 ? 'pos' : v < 0 ? 'neg' : 'zer';
 const numHTML = v => `<span class="${cls(v)}">${fmt(v)}</span>`;
 
 /* ---------- inline art ---------- */
-// the key everywhere in the game: assets/ui_key.webp (upright, head at the top)
-const KEY_SVG = `<img class="keyart" src="${ASSET('ui_key')}" alt="" draggable="false">`;
-const GEM_SVG = `<svg viewBox="0 0 100 100"><polygon points="18,36 34,14 66,14 82,36 50,90" fill="#4fc3ff" stroke="#0b4f7a" stroke-width="5" stroke-linejoin="round"/><polygon points="18,36 82,36 50,90" fill="#2a9fe0"/><polygon points="34,14 50,36 66,14" fill="#c8f3ff"/><polygon points="18,36 34,14 50,36" fill="#8fdcff"/><polygon points="50,36 66,14 82,36" fill="#6fd0ff"/><polygon points="30,40 44,40 50,74" fill="#bff0ff" opacity=".6"/></svg>`;
-const PADLOCK_SVG = `<svg viewBox="0 0 130 150"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe9a0"/><stop offset=".55" stop-color="#e8a92a"/><stop offset="1" stop-color="#a86a0a"/></linearGradient></defs><g class="shackle"><path d="M32 72 V46 a33 33 0 0 1 66 0 V72" fill="none" stroke="#6d737c" stroke-width="18" stroke-linecap="round"/><path d="M32 72 V46 a33 33 0 0 1 66 0 V72" fill="none" stroke="#c9ced6" stroke-width="8" stroke-linecap="round"/></g><rect x="10" y="64" width="110" height="80" rx="16" fill="url(#lg)" stroke="#6b3d00" stroke-width="5"/><circle cx="65" cy="96" r="11" fill="#4a2800"/><rect x="60" y="100" width="10" height="24" rx="4" fill="#4a2800"/><circle cx="24" cy="78" r="4" fill="#fff6c8"/><circle cx="106" cy="78" r="4" fill="#fff6c8"/></svg>`;
+// the key everywhere in the game: ui_key (upright, head at the top), set once the preloader has it
+let KEY_SVG = '';
+Preload.get('ui_key').then(url => { KEY_SVG = `<img class="keyart" src="${url}" alt="" draggable="false">`; });
 const ICONS = {
-  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="#fff"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>`,
-  soundOff: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="#fff"/><path d="M17 9l5 6M22 9l-5 6"/></svg>`,
-  voice: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4z" fill="rgba(255,255,255,.2)"/><path d="M8 9h8M8 12h5"/></svg>`,
   menu: `<svg viewBox="0 0 24 24" fill="#fff"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>`,
   back: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5l-7 7 7 7M4 12h16"/></svg>`,
-  replay: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>`,
 };
 const NARRATOR_AV = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#f6c84c"/><circle cx="50" cy="50" r="36" fill="#fff4cf" stroke="#8b4a12" stroke-width="5"/><polygon points="50,20 58,50 50,80 42,50" fill="#c0392b"/><polygon points="50,50 58,50 50,80 42,50" fill="#3b2412"/><circle cx="50" cy="50" r="5" fill="#8b4a12"/></svg>`);
 
@@ -39,9 +38,6 @@ function arrowSVG(w, h = 56, fill = '#FFD54A') {
 
 function badgeSVG(b) {
   const icons = {
-    both: `<path d="M60 112 h100" stroke="#fff" stroke-width="10" stroke-linecap="round"/><path d="M60 112 l18 -16 M60 112 l18 16 M160 112 l-18 -16 M160 112 l-18 16" stroke="#fff" stroke-width="10" stroke-linecap="round"/>`,
-    left: `<path d="M150 112 h-86 M64 112 l22 -20 M64 112 l22 20" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><text x="128" y="96" font-family="Lilita One" font-size="34" fill="#fff">+(−)</text>`,
-    right: `<path d="M70 112 h86 M156 112 l-22 -20 M156 112 l-22 20" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><text x="52" y="96" font-family="Lilita One" font-size="34" fill="#fff">−(−)</text>`,
     chest: `<rect x="68" y="104" width="84" height="44" rx="6" fill="#8b4513" stroke="#4a2200" stroke-width="5"/><path d="M68 106 q42 -40 84 0 z" fill="#a0522d" stroke="#4a2200" stroke-width="5"/><rect x="102" y="110" width="16" height="18" rx="3" fill="#ffd54a" stroke="#4a2200" stroke-width="3"/><circle cx="110" cy="72" r="9" fill="#fff6c8"/>`,
   };
   return `<svg viewBox="0 0 220 250"><path d="M62 170 L40 246 L72 228 L92 248 L104 176 Z" fill="${b.dark}"/><path d="M158 170 L180 246 L148 228 L128 248 L116 176 Z" fill="${b.dark}"/><circle cx="110" cy="110" r="96" fill="#ffd54a" stroke="#7a4a00" stroke-width="6"/><circle cx="110" cy="110" r="84" fill="none" stroke="#fff3b0" stroke-width="4" stroke-dasharray="6 9"/><circle cx="110" cy="110" r="72" fill="${b.color}" stroke="${b.dark}" stroke-width="6"/><ellipse cx="88" cy="70" rx="34" ry="16" fill="#fff" opacity=".25"/>${icons[b.icon] || ''}</svg>`;
@@ -50,28 +46,8 @@ function badgeSVG(b) {
 // hidden key box: a wooden crate with gold corners and a glowing "?"
 const KEYBOX_SVG = `<svg viewBox="0 0 100 100"><defs><linearGradient id="kbw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98a4a"/><stop offset="1" stop-color="#8a4e1e"/></linearGradient></defs><rect x="6" y="8" width="88" height="86" rx="10" fill="url(#kbw)" stroke="#4a2408" stroke-width="5"/><path d="M8 36 H92 M8 66 H92" stroke="#6b3a12" stroke-width="4" opacity=".55"/><g fill="#ffd54a" stroke="#7a4a00" stroke-width="3"><path d="M6 20 V14 a6 6 0 0 1 6 -6 H24 V20 Z"/><path d="M94 20 V14 a6 6 0 0 0 -6 -6 H76 V20 Z"/><path d="M6 82 V88 a6 6 0 0 0 6 6 H24 V82 Z"/><path d="M94 82 V88 a6 6 0 0 1 -6 6 H76 V82 Z"/></g><text class="q" x="50" y="68" text-anchor="middle" font-family="Lilita One, sans-serif" font-size="50" fill="#ffe680" stroke="#5a2e00" stroke-width="3">?</text><circle class="hole" cx="50" cy="52" r="15" fill="#2a1404" opacity="0"/></svg>`;
 
-/* ---------- map geometry (map image is 1200 × 800) ---------- */
-const MAP = {
-  pieces: [
-    'polygon(0 0, 37% 0, 35.5% 12%, 37.5% 26%, 35% 41%, 38% 56%, 36% 72%, 38.5% 86%, 36.5% 100%, 0 100%)',
-    'polygon(37% 0, 72% 0, 70.5% 14%, 72% 28%, 69.5% 44%, 63% 50%, 58% 57%, 56.5% 70%, 54% 84%, 55.5% 100%, 36.5% 100%, 38.5% 86%, 36% 72%, 38% 56%, 35% 41%, 37.5% 26%, 35.5% 12%)',
-    'polygon(72% 0, 100% 0, 100% 100%, 55.5% 100%, 54% 84%, 56.5% 70%, 58% 57%, 63% 50%, 69.5% 44%, 72% 28%, 70.5% 14%)',
-  ],
-  lockAt: [[220, 410], [640, 330], [930, 560]],
-  routes: [
-    [[211, 289], [330, 250], [430, 215], [540, 250], [656, 281]],
-    [[656, 281], [590, 370], [540, 470], [660, 540], [812, 516]],
-    [[812, 516], [870, 585], [935, 565], [978, 510], [1012, 462]],
-  ],
-};
-const segPath = (a, b, k) => {
-  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
-  const off = (k % 2 ? -1 : 1) * 26;
-  return `M${a[0]} ${a[1]} Q${mx - dy / L * off} ${my + dx / L * off} ${b[0]} ${b[1]}`;
-};
-
 /* ---------- state ---------- */
-const S = { gems: 0, levelGems: [0, 0, 0], streak: 0, level: 0, piecesOpen: 0, pathsOpen: [0, 0, 0] };
+const S = { gems: 0, levelGems: [0, 0, 0], streak: 0, level: 0 };
 
 /* ---------- run control: one counter cancels every pending beat ---------- */
 let RUN = 0;
@@ -101,12 +77,15 @@ function stagePos(el) {
 let bgFlip = false, bgNow = '';
 // the scene, blurred, also fills any space around the stage
 // (a full address: a relative one inside a CSS variable would be read from the stylesheet's folder, not the page's)
-const backdrop = name => document.body.style.setProperty('--backdrop', `url("${new URL(ASSET(name), document.baseURI).href}")`);
+const backdrop = name => { backdropNow = name; Preload.get(name).then(url => { if (backdropNow === name) document.body.style.setProperty('--backdrop', `url("${new URL(url, document.baseURI).href}")`); }); };
+let backdropNow = '';
 function setBg(name) {
   backdrop(name); // even for the same scene: the home screen swaps in the cover art around it
   if (bgNow === name) return; bgNow = name; stage.dataset.bg = name;
   const a = $(bgFlip ? '#bgA' : '#bgB'), b = $(bgFlip ? '#bgB' : '#bgA');
-  a.style.backgroundImage = `url(${ASSET(name)})`; a.classList.add('on'); b.classList.remove('on'); bgFlip = !bgFlip;
+  bgFlip = !bgFlip;
+  // the picture goes in once it's preloaded (at once in the game; on the cover, while loading, when it lands)
+  Preload.get(name).then(url => { if (bgNow !== name) return; a.style.backgroundImage = `url(${url})`; a.classList.add('on'); b.classList.remove('on'); });
 }
 
 /* ---------- particles: a single animation loop ---------- */
@@ -186,22 +165,11 @@ function toast(text, small = false) {
 
 /* ---------- speech bubble ---------- */
 const WHO = { wizard: 'Wizard', explorer: 'Explorer', narrator: 'Narrator' };
-let lastLine = { who: 'narrator', text: '' };
-function bubble(who, text, mode = 'bottom', speak = true, clip = null, cues = null) {
-  const b = $('#bubble');
-  b.className = `on ${mode} ${who}`;
-  b.querySelector('.av').src = who === 'wizard' ? ASSET('wizard_avatar') : who === 'explorer' ? ASSET('explorer_avatar') : NARRATOR_AV;
-  b.querySelector('.who').textContent = WHO[who];
-  b.querySelector('.txt').innerHTML = text;
-  retrigger(b, 'pop');
-  lastLine = { who, text, clip };
-  return speak ? Voice.say(text, who, clip, cues) : Promise.resolve();
-}
 function hideBubble() { $('#bubble').classList.remove('on', 'pop'); } // keeps its look while it fades out
 // game lines are spoken only, never shown on screen (the script's on-screen text goes on the sign)
 // narration: the narrator and the game's instructions are voice only (no box), in the narrator's voice
-function speakOnly(who, text) { hideBubble(); if (!text) return Promise.resolve(); lastLine = { who: 'narrator', text }; return Voice.say(text, 'narrator'); }
-async function voiceOnly(who, text, clip = null) { const r = RUN; hideBubble(); if (!text) return; lastLine = { who: 'narrator', text, clip }; await Voice.say(text, 'narrator', clip); guard(r); }
+function speakOnly(who, text) { hideBubble(); if (!text) return Promise.resolve(); return Voice.say(text, 'narrator'); }
+async function voiceOnly(who, text, clip = null) { const r = RUN; hideBubble(); if (!text) return; await Voice.say(text, 'narrator', clip); guard(r); }
 
 /* character dialogue: a comic speech bubble whose tail points at the speaker. No voice, no Next: the text types
    out, stays up long enough to read, then the game moves on by itself.
@@ -287,7 +255,6 @@ function showTalk(who, text, cues = null) {
   b.className = `on comic ${who}`;
   b.querySelector('.av').src = who === 'wizard' ? ASSET('wizard_avatar') : who === 'explorer' ? ASSET('explorer_avatar') : NARRATOR_AV;
   b.querySelector('.who').textContent = WHO[who];
-  lastLine = { who, text };
   const plain = text.replace(/<[^>]+>/g, ''), lower = plain.toLowerCase();
   txt.innerHTML = `<span class="ghost">${plain}</span>`; // full size first, so the bubble can be placed
   placeTalk(b, who); retrigger(b, 'pop'); Sound.fx.pop();
@@ -305,20 +272,11 @@ function showTalk(who, text, cues = null) {
 }
 async function talk(who, text, cues = null) { await showTalk(who, text, cues); }
 function endTalk() { if ($('#bubble').classList.contains('comic')) hideBubble(); }
-$('#btnReplay').innerHTML = ICONS.replay;
-$('#btnReplay').addEventListener('click', e => { e.stopPropagation(); Sound.fx.tap(); Voice.say(lastLine.text, lastLine.who, lastLine.clip); });
 // the game part (key hunt, map puzzles) is marked on the stage
 function setPlaying(on) { stage.classList.toggle('playing', on); }
 
 /* ---------- waiting for the player ---------- */
-let pending = { cont: null, dial: null, dir: null, tapTarget: null };
-
-function cont(label = 'Continue', corner = false) {
-  const r = RUN, b = $('#btnContinue');
-  b.textContent = label; b.classList.toggle('corner', corner); b.classList.add('on');
-  return new Promise(res => { pending.cont = res; }).then(() => { b.classList.remove('on'); Voice.stop(); guard(r); });
-}
-$('#btnContinue').addEventListener('click', () => { if (pending.cont) { const f = pending.cont; pending.cont = null; Sound.fx.tap(); f(); } });
+let pending = { dial: null, dir: null, tapTarget: null };
 
 /* ---------- HUD ---------- */
 const HUD = {
@@ -327,16 +285,10 @@ const HUD = {
   fill(i) { const sl = $('#slots').children[i]; if (sl) { sl.classList.add('full'); if (sl.classList.contains('seal-slot')) sl.textContent = '★'; } },
   empty(i) { const sl = $('#slots').children[i]; if (sl) sl.classList.remove('full'); },
   slotPos(i) { return stagePos($('#slots').children[i]); },
-  hide() { $('#slots').classList.remove('on'); $('#levelName').classList.remove('on'); },
-  level(text) { const l = $('#levelName'); l.textContent = text; l.classList.add('on'); },
+  hide() { $('#slots').classList.remove('on'); },
 };
-$('#gems .gem-ico').innerHTML = GEM_SVG;
-function setGems() { $('#gemCount').textContent = S.gems; }
-async function addGem(from) {
-  S.gems++; S.levelGems[S.level]++;
-  if ($('#gems').offsetParent) await fly(GEM_SVG, from, stagePos($('#gems .gem-ico')), 700, 46);
-  setGems(); retrigger($('#gems'), 'bump'); Sound.fx.gem();
-}
+// a first-try answer wins a gem (counted for the final screen)
+function addGem() { S.gems++; S.levelGems[S.level]++; Sound.fx.gem(); }
 function streakHit(firstTry) {
   if (!firstTry) { S.streak = 0; return; }
   S.streak++;
@@ -360,7 +312,6 @@ const Tablet = {
     t.innerHTML = eqTokens(str);
     this.fit();
   },
-  rule(html) { const t = $('#tablet'); t.className = 'on rule'; t.innerHTML = html; this.fit(); },
   // the sign glows while its line is spoken ("The next key is at…"), and the glow fades out when the line ends
   glow(said, onMap = false) {
     const t = $('#tablet'), off = () => { if (t.classList.contains('eq-hl')) { t.classList.remove('eq-hl'); retrigger(t, 'eq-out'); } };
@@ -384,13 +335,6 @@ const Tablet = {
   },
   hide() { $('#tablet').className = ''; },
 };
-
-/* ---------- rule chip ---------- */
-function setRules(L) {
-  const rows = LEVELS.slice(0, L + 1).flatMap(l => l.rule);
-  $('#ruleChip').innerHTML = rows.map(([s, w, d]) => `<div class="rc"><b>${s}</b> ${w} → ${d === 'left' ? '◀ left' : 'right ▶'}</div>`).join('');
-  $('#ruleChip').classList.add('on');
-}
 
 /* ---------- actors in the scene ---------- */
 const actors = {};
@@ -666,77 +610,23 @@ addEventListener('keydown', e => {
   }
   if (e.key === 'Enter' || e.key === ' ') {
     if (pending.coach) { e.preventDefault(); pending.coach(); }
-    else if (pending.cont) { e.preventDefault(); $('#btnContinue').click(); }
     else if (pending.tapTarget) { e.preventDefault(); pending.tapTarget(); }
   }
 });
 
-/* ---------- map ---------- */
-const MapView = {
-  st: { x: 0, y: 0, s: .5 },
-  build() {
-    const pc = $('#mapPieces'); pc.innerHTML = '';
-    MAP.pieces.forEach((poly, i) => {
-      const d = document.createElement('div'); d.className = `mpiece p${i + 1}`; d.dataset.i = i;
-      d.style.backgroundImage = `url(${ASSET('map')})`; d.style.clipPath = poly; d.style.webkitClipPath = poly;
-      pc.appendChild(d);
-    });
-    const svg = $('#mapPaths'); let h = '';
-    MAP.routes.forEach((rt, L) => {
-      for (let k = 0; k < 4; k++) h += `<path class="seg" data-l="${L}" data-k="${k}" d="${segPath(rt[k], rt[k + 1], k)}"/>`;
-    });
-    svg.innerHTML = h;
-    this.refresh();
-  },
-  refresh() {
-    document.querySelectorAll('.mpiece').forEach((p, i) => p.classList.toggle('locked', i >= S.piecesOpen));
-    document.querySelectorAll('#mapPaths .seg').forEach(s => {
-      const L = +s.dataset.l, k = +s.dataset.k;
-      s.classList.toggle('on', k < S.pathsOpen[L]);
-    });
-  },
-  place(x, y, s, instant = false) {
-    const m = $('#mapView'); this.st = { x, y, s };
-    if (instant) m.style.transition = 'none';
-    m.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
-    if (instant) { void m.offsetWidth; m.style.transition = ''; }
-  },
-  toStage([px, py]) { return { x: this.st.x + px * this.st.s, y: this.st.y + py * this.st.s }; },
-  show() { $('#mapView').classList.add('on'); },
-  hide() { $('#mapView').classList.remove('on'); $('#mapSeals').innerHTML = ''; $('#mapToken').classList.remove('on'); $('#mapPaths').classList.remove('allglow'); document.querySelectorAll('.padlock').forEach(p => p.remove()); },
-  seals(L) {
-    const box = $('#mapSeals'); box.innerHTML = '';
-    MAP.routes[L].slice(1).forEach(([x, y], k) => {
-      const s = document.createElement('div'); s.className = 'seal'; s.textContent = '?';
-      s.style.left = `${x}px`; s.style.top = `${y}px`; box.appendChild(s);
-      setTimeout(() => { s.classList.add('on'); Sound.fx.pop(); }, 250 * k);
-    });
-  },
-  seal(k) { return $('#mapSeals').children[k]; },
-  padlock(L) {
-    const p = document.createElement('div'); p.className = 'padlock'; p.innerHTML = PADLOCK_SVG;
-    p.style.left = `${MAP.lockAt[L][0]}px`; p.style.top = `${MAP.lockAt[L][1]}px`;
-    $('#mapView').appendChild(p); return p;
-  },
-  token(pt, on = true) {
-    const t = $('#mapToken'); t.style.backgroundImage = `url(${ASSET('explorer_avatar')})`;
-    t.style.left = `${pt[0]}px`; t.style.top = `${pt[1]}px`; t.classList.toggle('on', on);
-  },
-};
-
 /* ---------- reset everything between chapters ---------- */
 function resetUI() {
   Voice.stop(); Coach.end(); clearAnswerHand();
-  pending = { cont: null, dial: null, dir: null, tapTarget: null };
+  pending = { dial: null, dir: null, tapTarget: null };
   Mover.hide();
   hideBubble(); Tablet.hide(); Dial.hide(); Dial.clear();
-  ['#dirPick', '#btnContinue', '#demo', '#miniLine', '#hintArrow', '#ruleChip', '#flare'].forEach(s => $(s).classList.remove('on'));
+  ['#dirPick', '#hintArrow', '#flare'].forEach(s => $(s).classList.remove('on'));
   $('#toast').classList.remove('on');
   clearActors(); clearProps(); $('#nlWrap').classList.remove('on', 'out'); $('#nl').innerHTML = '';
-  MapView.hide(); HUD.hide();
+  HUD.hide();
   document.querySelectorAll('.fly, .puff, .poofcloud').forEach(e => e.remove());
-  ['#badgeModal', '#final', '#title', '#signRules'].forEach(s => $(s).classList.remove('on', 'out'));
-  stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll', 'path-art', 'unlock-scroll', 'playing', 'stones-lava', 'cast', 'cast-now'); $('#scroll').classList.remove('unroll'); $('#pathArt').classList.remove('unroll');
+  ['#final', '#title', '#signRules'].forEach(s => $(s).classList.remove('on', 'out'));
+  stage.classList.remove('theme-cavern', 'map-ui', 'map-scroll', 'path-art', 'playing', 'stones-lava', 'cast', 'cast-now'); $('#scroll').classList.remove('unroll'); $('#pathArt').classList.remove('unroll');
   $('#pathArt').classList.remove('glow', 'faint'); $('#pathArt .pa-hand')?.classList.remove('on'); $('#pathArt .pa-token').classList.remove('on'); $('#pathArt .pa-lit').setAttribute('d', '');
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
@@ -1105,7 +995,7 @@ async function solvedExample(it, ans) {
 
 async function keyHunt(L, from = 0) {
   const lvl = LEVELS[L];
-  HUD.keys(lvl.keys.length); setRules(L);
+  HUD.keys(lvl.keys.length);
   for (let i = 0; i < from; i++) HUD.fill(i);
   setPlaying(true);
   if (lvl.keysIntro && from === 0) { if (lvl.signOnlyWithOst) Tablet.hide(); await voiceOnly('wizard', lvl.keysIntro); }
@@ -1126,10 +1016,6 @@ async function keyHunt(L, from = 0) {
     // the guided question: only the equation is spotlit while it is read; the arrows come after
     if (it.coach) await Coach.step($('#tablet'), '', '', { until: () => false, stop: questionVO.then(() => 'stop', () => 'stop'), hand: false });
     await wait(300); // the controls come up with the equation
-    const n = Math.abs(it.delta), submit = lvl.submit || 'JUMP';
-    if (!lvl.voOnly) bubble('wizard', lvl.directPrompt
-      ? `Start at ${fmt(it.start)} and move ${n} step${n === 1 ? '' : 's'} ${it.delta > 0 ? 'right' : 'left'}. Then press ${submit}.`
-      : `Move the explorer with Left and Right, then press ${submit} to grab the key!`, 'left', i === 0 || lvl.theme === 'cavern');
     while (true) {
       const asked = Mover.ask(it.start, {
         idle: () => { speakOnly('wizard', it.idle); Mover.pulse(); NL.hop(); },
@@ -1222,7 +1108,7 @@ async function keySuccess(L, i, it, ans, firstTry) {
   } else { Sound.fx.key(); k.style.left = `${NL.x(ans) + 100}px`; retrigger(k, 'on'); }
   const p = stagePos(NL.exp); FX.burst(p.x, p.y - 60, 30, 'star', 8);
   toast(it.cele, it.cele.length < 8); FX.confetti(it.size);
-  if (firstTry) addGem({ x: p.x, y: p.y - 80 });
+  if (firstTry) addGem();
   if (!it.demo) streakHit(firstTry); // the explorer's own solved example doesn't count for or against the player
   await wait(1000);
   k.classList.remove('on');
@@ -1239,63 +1125,6 @@ async function keySuccess(L, i, it, ans, firstTry) {
   NL.pose('explorer_idle');
 }
 
-async function unlock(L) {
-  if (LEVELS[L].artMap) return unlockArt(L);
-  const UNLOCK = unlockLines(L);
-  const ui = !!LEVELS[L].mapScroll, mode = ui ? 'side' : 'bottomL';
-  stage.classList.toggle('map-ui', ui);
-  $('#nlWrap').classList.remove('on'); Tablet.hide(); $('#ruleChip').classList.remove('on');
-  // Chamber 1: the map sits on the scroll over the blurred chamber, like the path reveal
-  const onScroll = !!LEVELS[L].pathArt && ui; stage.classList.toggle('unlock-scroll', onScroll);
-  setBg(onScroll ? LEVELS[L].bg : 'bg_map_table'); MapView.build();
-  onScroll ? MapView.place(275, 146, .613, true) : ui ? MapView.place(268, 116, .62, true) : MapView.place(244, 70, .66, true); MapView.show();
-  const piece = document.querySelectorAll('.mpiece')[L];
-  const lock = MapView.padlock(L);
-  actor('exp', { img: 'explorer_idle', x: 1150, y: 600, h: 300, cls: 'idle', enter: true });
-  piece.classList.add('glow');
-  showTalk('wizard', UNLOCK.wizard);
-  const r = RUN;
-  await new Promise(res => {
-    const go = () => { piece.removeEventListener('click', go); pending.tapTarget = null; clearInterval(idleT); res(); };
-    piece.addEventListener('click', go); pending.tapTarget = go;
-    const idleT = setInterval(() => { if (r !== RUN) { clearInterval(idleT); return; } speakOnly('wizard', UNLOCK.idle, mode); document.querySelectorAll('#slots .slot').forEach(s => pulseClass(s, 'bump', 600)); }, 14000);
-  });
-  guard(r);
-  piece.classList.remove('glow'); Voice.stop();
-  const lp = MapView.toStage(MAP.lockAt[L]);
-  const n = $('#slots').children.length;
-  for (let i = 0; i < n; i++) {
-    const from = HUD.slotPos(i); HUD.empty(i);
-    fly(KEY_SVG, from, lp, 700, 60); setTimeout(() => Sound.fx.coin(), 650);
-    await wait(170);
-  }
-  await wait(800);
-  retrigger(lock, 'rattle'); Sound.fx.thud(); await wait(450);
-  lock.classList.add('open'); Sound.fx.unlock(); await wait(500);
-  lock.classList.add('gone');
-  S.piecesOpen = Math.max(S.piecesOpen, L + 1); MapView.refresh();
-  FX.burst(lp.x, lp.y, 50, 'star', 11); FX.confetti('huge'); Sound.fx.fanfare();
-  toast(UNLOCK.ost);
-  actor('exp', { img: 'explorer_thumbsup' }); actorAnim('exp', 'jump');
-  await wait(600);
-  await talk('explorer', UNLOCK.explorer);
-  await cont('Open the map', true);
-  lock.remove(); stage.classList.remove('unlock-scroll');
-}
-
-function showMiniLine(start, ans) {
-  const lo = Math.min(start, ans) - 1, hi = Math.max(start, ans) + 1;
-  const m = $('#miniLine'); let h = '';
-  for (let v = lo; v <= hi; v++) h += `<div class="mcell ${v === 0 ? 'zero' : ''} ${v === start ? 'st' : ''}" data-v="${v}"><span class="${cls(v)}">${fmt(v)}</span></div>`;
-  m.innerHTML = h; m.classList.add('on');
-}
-async function animateMiniLine(start, delta) {
-  const dir = Math.sign(delta);
-  for (let k = 1; k <= Math.abs(delta); k++) {
-    $(`#miniLine .mcell[data-v="${start + dir * k}"]`)?.classList.add('hl'); Sound.fx.count(k);
-    await wait(RM ? 160 : 360);
-  }
-}
 function showHintArrow(dir) {
   const a = $('#hintArrow'); a.innerHTML = arrowSVG(110, 62);
   const t = $('#tablet').getBoundingClientRect(), s = stage.getBoundingClientRect();
@@ -1306,42 +1135,26 @@ function showHintArrow(dir) {
   Sound.fx.whoosh();
 }
 
-function mapScene() {
-  $('#nlWrap').classList.remove('on'); setBg('bg_map_table');
-  if (!$('#mapView').classList.contains('on')) { MapView.build(); MapView.place(310, 158, .55, true); MapView.show(); }
-  MapView.place(310, 158, .55);
-  actor('exp', { img: 'explorer_idle', x: 1140, y: 610, h: 320, cls: 'idle' });
-}
-
 async function mysteries(L, from = 0) {
-  const lvl = LEVELS[L], art = !!lvl.artMap;
-  if (art) { setupPathArt(L); $('#pathArt').classList.add('faint'); litTo(lvl.pathArt, from); setRules(L); }
-  else { mapScene(); setRules(L); stage.classList.toggle('map-ui', !!lvl.mapScroll); }
-  if (art && from === 0 && lvl.mapIntro.some(l => !l.vo)) await castIn();
+  const lvl = LEVELS[L], pa = lvl.pathArt;
+  setupPathArt(L); $('#pathArt').classList.add('faint'); litTo(pa, from);
+  if (from === 0 && lvl.mapIntro.some(l => !l.vo)) await castIn();
   if (from === 0) for (const line of lvl.mapIntro) { // vo: an instruction, voice only
     if (line.exp && actors.exp) { actor('exp', { img: line.exp }); actorAnim('exp', 'shake'); } // exp: the explorer's face as the line starts
     await (line.vo ? voiceOnly(line.who, line.text) : talk(line.who, line.text));
   }
-  if (art) { // the characters from the unlock scene step away before the puzzles start
-    castOut();
-  }
-  if (!art) { MapView.seals(L); await wait(1100); }
+  castOut(); // the characters from the unlock scene step away before the puzzles start
   HUD.seals(lvl.mysteries.length); // the puzzle tray comes in with the puzzles (the unlock screen shows no tray)
   setPlaying(true);
-  for (let j = 0; j < from; j++) { HUD.fill(j); const s = !art && MapView.seal(j); if (s) { s.classList.add('done'); s.textContent = '★'; } }
+  for (let j = 0; j < from; j++) HUD.fill(j);
   for (let j = from; j < lvl.mysteries.length; j++) {
     const m = lvl.mysteries[j], ans = m.start + m.delta;
     let tries = 0;
     QA.at(`${L}:map:${j}`, null, ans);
-    if (lvl.mapScroll) {
-      if (j > from) await wait(600); // let the newly lit path stay on screen a moment
-      stage.classList.add('map-scroll'); setBg(lvl.bg); Sound.fx.whoosh(); await wait(250);
-    }
-    Dial.clear(); Tablet.eq(m.eq); $('#hintArrow').classList.remove('on'); $('#miniLine').classList.remove('on');
+    if (j > from) await wait(600); // let the newly lit path stay on screen a moment
+    stage.classList.add('map-scroll'); setBg(lvl.bg); Sound.fx.whoosh(); await wait(250); // the puzzle comes up on the scroll
+    Dial.clear(); Tablet.eq(m.eq); $('#hintArrow').classList.remove('on');
     Tablet.glow(wait(2800), true); // the new puzzle's equation glows as long as a key question's does ("The next key is at.")
-    const seal = art ? null : MapView.seal(j); seal?.classList.add('active');
-    if (!art) actor('exp', { img: 'explorer_idle' });
-    // a puzzle without a line of its own: the banner clears and the sign carries the equation
     // the keypad comes up with the equation; the puzzle is read out while the player can already answer
     let puzzleVO = null;
     if (m.vo) { puzzleVO = voiceOnly('wizard', m.vo); puzzleVO.catch(() => {}); } else hideBubble();
@@ -1349,7 +1162,7 @@ async function mysteries(L, from = 0) {
     Dial.show();
     while (true) {
       const asked = Dial.ask({
-        idle: () => { speakOnly('wizard', m.idle); Dial.pulse(); if (seal) retrigger(seal, 'active'); },
+        idle: () => { speakOnly('wizard', m.idle); Dial.pulse(); },
         touched: () => { $('#hintArrow').classList.remove('on'); },
       });
       if (m.coach && tries === 0) await coachKeypad(m, ans, asked, puzzleVO);
@@ -1357,67 +1170,30 @@ async function mysteries(L, from = 0) {
       if (v === ans) break;
       tries++; S.streak = 0;
       Dial.shake(); Sound.fx.wrong();
-      if (!art) { actor('exp', { img: 'explorer_confused' }); actorAnim('exp', 'shake'); }
       const rung = Math.min(tries, 3);
       speakOnly('wizard', m.wrong[rung - 1]);
       if (rung === 2) showHintArrow(m.delta > 0 ? 'right' : 'left');
-      if (rung === 3) {
-        if (lvl.hint3 === 'line') { showMiniLine(m.start, ans); await wait(900); await animateMiniLine(m.start, m.delta); }
-        else { await Tablet.pulseTokens(); }
-      }
+      if (rung === 3) await Tablet.pulseTokens(); // the equation's numbers pulse
       await wait(300);
       Dial.clear();
-      if (!art) actor('exp', { img: 'explorer_idle' });
       if (tries === 4) await signRules(L, m); // the 4th miss: the sign rule behind this puzzle, walked through
       if (tries >= 4) guideKeypad(ans); // the 4th miss: the hand shows which keys to press
     }
     // solved
     clearAnswerHand(); Dial.good(); Tablet.solve(ans); Sound.fx.reveal();
     // the keypad fades out on the scroll first, then the scroll goes (it never jumps to another place mid-fade)
-    if (lvl.mapScroll) { await wait(900); Dial.hide(); await wait(RM ? 60 : 360); stage.classList.remove('map-scroll'); if (!art) setBg('bg_map_table'); await wait(500); }
-    if (seal) { seal.classList.remove('active'); seal.classList.add('done'); seal.textContent = '★'; }
-    S.pathsOpen[L] = j + 1;
-    if (art) { litTo(lvl.pathArt, j + 1); retrigger($('#pathArt .pa-lit'), 'flash'); } else MapView.refresh();
+    await wait(900); Dial.hide(); await wait(RM ? 60 : 360); stage.classList.remove('map-scroll'); await wait(500);
+    litTo(pa, j + 1); retrigger($('#pathArt .pa-lit'), 'flash');
     HUD.fill(j);
-    const sp = art ? artPoint(lvl.pathArt, lvl.pathArt.route[pathCut(lvl.pathArt, j + 1)]) : MapView.toStage(MAP.routes[L][j + 1]); FX.burst(sp.x, sp.y, j === 3 ? 40 : 22, 'star', j === 3 ? 10 : 7);
+    const sp = artPoint(pa, pa.route[pathCut(pa, j + 1)]); FX.burst(sp.x, sp.y, j === 3 ? 40 : 22, 'star', j === 3 ? 10 : 7);
     toast(j === 3 ? '4/4 SOLVED!' : `${j + 1}/4 SOLVED`, true); FX.confetti(j === 3 ? 'medium' : 'small');
-    if (!art) { actor('exp', { img: 'explorer_thumbsup' }); actorAnim('exp', 'hop'); }
-    if (tries === 0) addGem({ x: 640, y: 120 });
+    if (tries === 0) addGem();
     streakHit(tries === 0);
     $('#hintArrow').classList.remove('on');
     await voiceOnly('wizard', m.correct);
     await wait(500);
-    $('#miniLine').classList.remove('on');
   }
   Dial.hide(); setPlaying(false);
-}
-
-async function revealed(L) {
-  const lvl = LEVELS[L], rv = lvl.revealed;
-  if (lvl.pathArt) return revealedArt(L);
-  if (!$('#mapView').classList.contains('on')) mapScene();
-  Tablet.rule(rv.ost); $('#mapPaths').classList.add('allglow');
-  FX.confetti('huge'); Sound.fx.fanfare(); toast(rv.ost, true);
-  await talk('wizard', rv.wizard);
-  // tap the glowing path to travel
-  const route = MAP.routes[L];
-  const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  hit.setAttribute('class', 'hit'); hit.setAttribute('d', route.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' '));
-  $('#mapPaths').style.pointerEvents = 'auto'; $('#mapPaths').appendChild(hit);
-  const r = RUN;
-  await new Promise(res => {
-    const go = () => { hit.removeEventListener('click', go); pending.tapTarget = null; clearInterval(t); res(); };
-    hit.addEventListener('click', go); pending.tapTarget = go;
-    const t = setInterval(() => { if (r !== RUN) { clearInterval(t); return; } speakOnly('wizard', rv.idle); }, 14000);
-  });
-  guard(r);
-  hit.remove(); $('#mapPaths').style.pointerEvents = 'none'; Sound.fx.tap(); Voice.stop();
-  MapView.token(route[0]); await wait(400);
-  for (let k = 1; k < route.length; k++) { MapView.token(route[k]); Sound.fx.step(); await wait(RM ? 300 : 900); }
-  FX.burst(MapView.toStage(route[4]).x, MapView.toStage(route[4]).y, 30, 'star', 8);
-  actor('exp', { img: 'explorer_point' }); actorAnim('exp', 'jump');
-  if (rv.explorer) { await talk('explorer', rv.explorer); endTalk(); }
-  await wait(400);
 }
 
 // the route art on the scroll: sized to its own shape, 760 wide, centred on the paper (top 145, 491 tall)
@@ -1457,14 +1233,14 @@ function castOut() {
   for (const id of ['wiz', 'exp']) if (actors[id]) { const p = stagePos(actors[id].el); poofAt(p.x, p.y); removeActor(id); }
   endTalk(); stage.classList.remove('cast');
 }
-// Chamber 1 "unlock": no map or padlock; the path art, dimmed (route still hidden), while the lines play
+// map unlock: the path art, dimmed (route still hidden), flies in and unrolls while the lines play
 const unlockLines = L => ({ ...UNLOCK, ...(LEVELS[L].unlock || {}) }); // a chamber's own lines over the defaults
-async function unlockArt(L) {
+async function unlock(L) {
   const UNLOCK = unlockLines(L);
   const from = $('#slots').classList.contains('on') ? stagePos($('#slots')) : { x: STAGE_W - 140, y: 60 };
   // the chamber fades away first (number line, explorer, sign and the key tray, which this screen doesn't show),
   // then the map flies in out of where the keys were
-  Tablet.hide(); $('#ruleChip').classList.remove('on'); $('#slots').classList.remove('on'); $('#nlWrap').classList.add('out');
+  Tablet.hide(); $('#slots').classList.remove('on'); $('#nlWrap').classList.add('out');
   await wait(RM ? 80 : 450);
   const pa = setupPathArt(L); litTo(pa, 0); $('#pathArt').classList.add('faint');
   if (UNLOCK.explorer || UNLOCK.wizard) stage.classList.add('cast', 'cast-now'); // someone will talk: unroll it already tucked up, no jump later
@@ -1499,18 +1275,18 @@ function flyIn(el, from, ms = RM ? 300 : 700) {
 }
 
 // the revealed route as its own illustration: the dashed path glows, a tap sends the explorer along it
-async function revealedArt(L) {
+async function revealed(L) {
   const lvl = LEVELS[L], rv = lvl.revealed, art = $('#pathArt'), tok = art.querySelector('.pa-token');
   const pa = setupPathArt(L);
-  art.classList.remove('faint'); litTo(pa, lvl.artMap ? 4 : 0);
+  art.classList.remove('faint'); litTo(pa, 4);
   const at = ([x, y]) => { tok.style.left = `${x / pa.w * 100}%`; tok.style.top = `${y / pa.h * 100}%`; };
   Sound.fx.reveal();
   await wait(500);
   FX.confetti('huge'); Sound.fx.fanfare(); toast(rv.ost, true);
   if (rv.wizard) { // only where the script has a line here
-    if (lvl.artMap) await castIn(['exp', 'wiz'], 'explorer_thumbsup');
+    await castIn(['exp', 'wiz'], 'explorer_thumbsup');
     await talk('wizard', rv.wizard);
-    if (lvl.artMap) castOut(); // out of the way of the route
+    castOut(); // out of the way of the route
   } else await wait(1200);
   art.classList.add('glow');
   // a tapping hand on the start of the route shows where to tap
@@ -1528,9 +1304,9 @@ async function revealedArt(L) {
   at(pa.route[0]); tok.classList.add('on'); await wait(400);
   for (let k = 1; k < pa.route.length; k++) { at(pa.route[k]); if (k % 2) Sound.fx.step(); await wait(RM ? 120 : 260); }
   const p = stagePos(tok); FX.burst(p.x, p.y, 30, 'star', 8); Sound.fx.sparkle();
-  if (lvl.artMap && rv.explorer) await castIn(['exp'], 'explorer_point');
+  if (rv.explorer) await castIn(['exp'], 'explorer_point');
   if (rv.explorer) await talk('explorer', rv.explorer); endTalk(); // only where the script has an explorer line
-  if (lvl.artMap) castOut();
+  castOut();
   await wait(400);
 }
 
@@ -1610,32 +1386,17 @@ async function signRules(L, puzzle = null) {
   box.classList.remove('on', 'out');
 }
 
-async function badge(L) {
-  const b = LEVELS[L].badge, m = $('#badgeModal');
-  m.querySelector('.badge-art').innerHTML = badgeSVG(b);
-  m.querySelector('.badge-name').textContent = `${b.name} badge`;
-  m.querySelector('.badge-sub').innerHTML = `Chamber ${L + 1} cleared! Gems found on first try: <b style="color:#6CCBFF">${S.levelGems[L]}</b> of 9`;
-  $('#btnBadge').textContent = L < 2 ? 'Next chamber' : 'Find the treasure';
-  m.classList.add('on'); Sound.fx.fanfare(); FX.confetti('big');
-  const r = RUN;
-  await new Promise(res => { $('#btnBadge').onclick = () => { $('#btnBadge').blur(); Sound.fx.tap(); res(); }; });
-  guard(r);
-  m.classList.remove('on');
-}
-
 // a level can start at any step (used by the QA panel); i = which key or map puzzle
-const STEPS = ['teach', 'keys', 'unlock', 'map', 'reveal', 'badge'];
+const STEPS = ['teach', 'keys', 'unlock', 'map', 'reveal'];
 async function runLevel(L, step = 'teach', i = 0) {
   const from = STEPS.indexOf(step), lvl = LEVELS[L];
-  S.level = L; S.levelGems[L] = 0; S.piecesOpen = from >= 3 ? L + 1 : L; reached(String(L));
+  S.level = L; S.levelGems[L] = 0; reached(String(L));
   QA.at(`${L}:${step}:${i}`); // where the player is from the start, even while the step's intro lines play (back counts on it)
-  S.pathsOpen = [0, 1, 2].map(k => (k < L ? 4 : k > L ? 0 : from >= 4 ? 4 : from === 3 ? i : 0));
   resetUI();
   stage.classList.toggle('theme-cavern', lvl.theme === 'cavern');
   stage.classList.toggle('stones-lava', lvl.stones === 'lava'); // a chamber can use the lava stones throughout
   $('#dirPick .jump .t').textContent = lvl.submit || 'JUMP!';
   setBg(lvl.bg); NL.build(lvl);
-  HUD.level(`Chamber ${L + 1}: ${lvl.name}`);
   if (L > 0 && from === 0) { toast(lvl.name, true); Sound.fx.whoosh(); await wait(1200); }
   if (from <= 0) { QA.at(`${L}:teach:0`); await teach(L); await signRules(L); } // the sign rules, with examples, before the keys
   if (from <= 1) await keyHunt(L, from === 1 ? i : 0);
@@ -1644,12 +1405,10 @@ async function runLevel(L, step = 'teach', i = 0) {
   if (from <= 3) await mysteries(L, from === 3 ? i : 0);
   if (from >= 4) { HUD.seals(lvl.mysteries.length); lvl.mysteries.forEach((_, k) => HUD.fill(k)); }
   if (from <= 4) { QA.at(`${L}:reveal:0`); await revealed(L); }
-  if (from === 5) mapScene();
-  if (lvl.badge) { QA.at(`${L}:badge:0`); await badge(L); } // a chamber without a badge goes straight on
 }
 
 async function runEnding() {
-  resetUI(); S.piecesOpen = 3; QA.at('end'); reached('end');
+  resetUI(); QA.at('end'); reached('end');
   await playScenes(STORY_END);
   const f = $('#final');
   f.querySelector('.badge-art').innerHTML = badgeSVG(FINAL_BADGE);
@@ -1659,10 +1418,11 @@ async function runEnding() {
 
 /* ---------- chapters ---------- */
 async function goChapter(c, step = 'teach', i = 0) {
+  if (!Preload.done) await Preload.ready; // every way in (Start, the menu, QA, keys) waits for the files
   if (Clock.paused) closeMenu();
   RUN++; resetUI(); S.streak = 0; // a run of right answers carries on from chamber to chamber
   try {
-    if (c === 'story') { S.gems = 0; setGems(); await runStory(); c = 0; }
+    if (c === 'story') { S.gems = 0; await runStory(); c = 0; }
     if (c === 'howto') { c = 0; step = 'keys'; i = 0; } // how to play = the guided first key
     if (c === 'end') { await runEnding(); return; }
     for (let L = +c; L < LEVELS.length; L++) await (L === +c ? runLevel(L, step, i) : runLevel(L));
@@ -1672,19 +1432,15 @@ async function goChapter(c, step = 'teach', i = 0) {
 
 /* ---------- menu & toggles ---------- */
 function paintToggles() {
-  $('#btnSound').innerHTML = Sound.on ? ICONS.sound : ICONS.soundOff; $('#btnSound').classList.toggle('off', !Sound.on);
-  $('#btnVoice').innerHTML = ICONS.voice; $('#btnVoice').classList.toggle('off', !Voice.on);
   $('#pause [data-act="sound"]').textContent = `Sound: ${Sound.on ? 'on' : 'off'}`;
   $('#pause [data-act="voice"]').textContent = `Voice: ${Voice.on ? 'on' : 'off'}`;
 }
-$('#btnSound').addEventListener('click', () => { Sound.init(); Sound.toggle(); Sound.fx.tap(); paintToggles(); });
-$('#btnVoice').addEventListener('click', () => { Voice.toggle(); Sound.fx.tap(); paintToggles(); });
 $('#btnPause').innerHTML = ICONS.menu;
 $('#btnPause').addEventListener('click', () => { Sound.fx.tap(); pauseGame(); });
 // back (top left): one step back — the previous key or map puzzle, the chamber's intro, the chamber before, the story;
 // from the story, the home screen. Steps are the ones the QA panel jumps to (QA.at marks where the player is).
 const STEP_LIST = ['story', ...LEVELS.flatMap((lvl, L) => [`${L}:teach:0`, ...lvl.keys.map((_, i) => `${L}:keys:${i}`), `${L}:unlock:0`,
-  ...lvl.mysteries.map((_, i) => `${L}:map:${i}`), `${L}:reveal:0`, ...(lvl.badge ? [`${L}:badge:0`] : [])]), 'end'];
+  ...lvl.mysteries.map((_, i) => `${L}:map:${i}`), `${L}:reveal:0`]), 'end'];
 function stepBack() {
   const k = STEP_LIST.indexOf(QA.cur);
   if (k <= 0) { showTitle(); return; } // the story (or anything unknown): back to the home screen
@@ -1751,7 +1507,7 @@ function devButton(btn) {
 /* ---------- QA panel: jump to any step, auto-solve ---------- */
 const QA = (() => {
   let cur = '', dir = null, ans = null, open = false, box = null;
-  const NAMES = { story: 'Story', howto: 'How to play', end: 'Treasure ending', teach: 'Intro', keys: 'Key', unlock: 'Unlock map', map: 'Map puzzle', reveal: 'Path reveal', badge: 'Badge' };
+  const NAMES = { story: 'Story', howto: 'How to play', end: 'Treasure ending', teach: 'Intro', keys: 'Key', unlock: 'Unlock map', map: 'Map puzzle', reveal: 'Path reveal' };
   function label(id) {
     if (!id) return 'Title screen';
     const [L, step, i] = id.split(':');
@@ -1773,7 +1529,7 @@ const QA = (() => {
           <div class="qa-row"><span>Keys</span>${lvl.keys.map((k, i) => chip(`${L}:keys:${i}`, i + 1, k.eq.replace(' = ?', ''))).join('')}</div>
           <div class="qa-row">${chip(`${L}:unlock:0`, 'Unlock map')}</div>
           <div class="qa-row"><span>Map</span>${lvl.mysteries.map((m, i) => chip(`${L}:map:${i}`, i + 1, m.eq.replace(' = ?', ''))).join('')}</div>
-          <div class="qa-row">${chip(`${L}:reveal:0`, 'Path reveal')}${lvl.badge ? chip(`${L}:badge:0`, 'Badge') : ''}</div></section>`).join('')}
+          <div class="qa-row">${chip(`${L}:reveal:0`, 'Path reveal')}</div></section>`).join('')}
         <p class="qa-tip"><kbd>Q</kbd> open or close · <kbd>N</kbd> auto-solve · <kbd>Esc</kbd> close</p>
       </aside>`;
     document.body.appendChild(box);
@@ -1819,9 +1575,7 @@ const QA = (() => {
         String(Math.abs(ans)).split('').forEach(d => Dial.key(d)); Dial.key('go'); return;
       }
       if (pending.coach) { pending.coach(); return; }
-      if (pending.cont) { $('#btnContinue').click(); return; }
       if (pending.tapTarget) { pending.tapTarget(); return; }
-      if ($('#badgeModal').classList.contains('on')) { $('#btnBadge').click(); return; }
       toast('Nothing to solve yet. Wait for the animation.', true);
     },
   };
@@ -1831,12 +1585,13 @@ const QA = (() => {
 
 /* ---------- title ---------- */
 /* ---------- cover page ---------- */
-// art from assets/cover_*.webp; the logo and button images also shape their light sweeps
-document.querySelectorAll('#title [data-asset]').forEach(img => {
-  img.onerror = () => { img.onerror = null; img.src = `assets/${img.dataset.asset}.png`; }; // some cover art is .png
-  img.src = ASSET(img.dataset.asset);
-});
-document.querySelectorAll('#title .cv-shine').forEach(s => { const img = s.parentElement.querySelector('img'); s.style.setProperty('--mask', `url("${img.src}")`); });
+// cover art (cover_* in the manifest), each piece shown as soon as the preloader has it; the logo and button images
+// also shape their light sweeps
+document.querySelectorAll('#title [data-asset]').forEach(img => Preload.get(img.dataset.asset).then(url => {
+  img.onload = () => img.classList.add('in');
+  img.src = url;
+  const shine = img.parentElement.querySelector('.cv-shine'); if (shine) shine.style.setProperty('--mask', `url("${url}")`);
+}));
 // floating embers rising out of the tunnel
 $('#title .cv-motes').innerHTML = Array.from({ length: 26 }, (_, i) => {
   const x = 120 + Math.random() * 1040, d = 7 + Math.random() * 7, delay = -Math.random() * d, s = 3 + Math.random() * 5, drift = (Math.random() - .5) * 120;
@@ -1844,6 +1599,8 @@ $('#title .cv-motes').innerHTML = Array.from({ length: 26 }, (_, i) => {
 }).join('');
 function showTitle() {
   if (Clock.paused) closeMenu();
+  $('#btnStart').style.animationDelay = ''; // the Start button pops in with the cover's entrance
+  $('#title').classList.remove('go'); $('#warp').classList.remove('on', 'open'); // a Start dive cut short
   RUN++; resetUI(); setBg('bg_entrance'); backdrop('cover_bg'); QA.at(''); // the cover's own art around the stage
   retrigger($('#title'), 'on'); // replays the entrance each time the cover opens
   coverMusic();
@@ -1874,22 +1631,56 @@ $('#title').addEventListener('click', e => {
   if (Date.now() - titleAt < 1200) return;
   coverVoiced = true; sayTitle();
 });
-$('#btnStart').addEventListener('click', () => { $('#btnStart').blur(); Sound.init(); Sound.music(); Sound.fx.fanfare(); $('#title').classList.remove('on'); goChapter('story'); });
-
-/* ---------- optional UI art: used when the file exists, drawn in CSS otherwise ---------- */
-['ui_platform', 'ui_equation_sign', 'ui_btn_arrow', 'ui_btn_check', 'ui_control_base', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text', 'ui_keybox', 'ui_platform_lava', 'chest_open_sheet', 'explorer_run_sheet', 'ui_btn_pause', 'ui_btn_back'].forEach(n => {
-  const img = new Image();
-  img.onload = () => { stage.style.setProperty(`--a-${n}`, `url("${img.src}")`); stage.classList.add(`has-${n}`); };
-  img.onerror = () => { if (!img.src.endsWith('.png')) img.src = `assets/${n}.png`; }; // some art is .png
-  img.src = ASSET(n);
+// Start: a burst of gold, then the camera dives into the tunnel (#title.go in the CSS); the screen fills with the
+// tunnel's light, and that light opens like an iris on the story
+$('#title .cv-burst').innerHTML = '<b></b>' + Array.from({ length: 18 }, (_, i) =>
+  `<i style="--a:${(i * 20 + Math.random() * 12).toFixed(0)}deg;--d:${(150 + Math.random() * 130).toFixed(0)}px;--t:${(Math.random() * .08).toFixed(2)}s"></i>`).join('');
+$('#btnStart').addEventListener('click', () => {
+  const title = $('#title'), warp = $('#warp');
+  if (!Preload.done || title.classList.contains('go')) return;
+  $('#btnStart').blur(); $('#btnStart').style.animationDelay = ''; // its pop-in delay would hold back the burst
+  Sound.init(); Sound.music(); Sound.fx.fanfare(); Voice.stop();
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, run = RUN;
+  title.classList.add('go');
+  setTimeout(() => Sound.fx.whoosh(), 250);
+  setTimeout(() => { if (RUN === run) warp.classList.add('on'); }, calm ? 0 : 1150);
+  setTimeout(() => {
+    if (RUN !== run) return;
+    Sound.fx.reveal(); title.classList.remove('on', 'go');
+    warp.classList.replace('on', 'open'); setTimeout(() => warp.classList.remove('open'), 900);
+    goChapter('story');
+  }, calm ? 300 : 1550);
 });
 
-/* ---------- boot ---------- */
-['explorer_idle', 'explorer_walk_1', 'explorer_walk_2', 'explorer_jump_key', 'explorer_confused', 'explorer_point', 'explorer_thumbsup', 'explorer_worried', 'explorer_run_back',
- 'wizard_laugh', 'wizard_point', 'wizard_explain', 'wizard_proud', 'wizard_hint', 'wizard_avatar', 'explorer_avatar', 'map',
- 'bg_tunnel', 'bg_level1_amber_tunnel', 'bg_level2_crystal_spires', 'bg_level3_lava_sea', 'bg_map_table', 'bg_final_path', 'bg_treasure_chamber']
-  .forEach(n => { const i = new Image(); i.src = ASSET(n); });
-fit(); paintToggles(); setGems(); showTitle();
+/* ---------- loading: a progress bar sits where Start will be; Start pops in once every file is here ---------- */
+{
+  const bar = $('#loadBar'), fill = bar.querySelector('.cv-load-fill'), pct = bar.querySelector('.cv-load-txt b'), shownAt = performance.now();
+  let raf = 0, last = 0;
+  Preload.onProgress(p => {
+    last = p; if (raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; const n = Math.floor(last * 100); fill.style.transform = `scaleX(${last})`; pct.textContent = `${n}%`; bar.setAttribute('aria-valuenow', n); });
+  });
+  Preload.ready.then(() => {
+    // Start keeps its place in the cover's entrance (it pops in 1.35 s after the cover opens), or pops in at once if
+    // loading took longer than that
+    const left = Math.max(0, 1350 - (performance.now() - shownAt));
+    $('#btnStart').style.animationDelay = `${left}ms`;
+    $('#title').classList.add('ready');
+  });
+}
+
+/* ---------- optional UI art: used when the file exists, drawn in CSS otherwise ---------- */
+['ui_platform', 'ui_equation_sign', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text', 'ui_keybox', 'ui_platform_lava', 'chest_open_sheet', 'explorer_run_sheet', 'ui_btn_pause', 'ui_btn_back'].forEach(n => {
+  Preload.get(n).then(url => {
+    const img = new Image();
+    img.onload = () => { stage.style.setProperty(`--a-${n}`, `url("${img.src}")`); stage.classList.add(`has-${n}`); };
+    img.onerror = () => { if (Preload.isBlob(img.src)) img.src = Preload.original(img.src); }; // the local copy failed: the file
+    img.src = url;
+  });
+});
+
+/* ---------- boot (every image and sound is fetched by the preloader, js/preload.js) ---------- */
+fit(); paintToggles(); showTitle();
 checkAway(); // opened in a background tab or on an upright phone: it starts once it is looked at, sideways
 if (document.fonts) document.fonts.ready.then(() => Tablet.fit()); // re-fit once the game font has loaded
 window.__tt = { goChapter, devButton, ctx: () => ({ step: QA.cur, label: QA.label, bg: bgNow }) };

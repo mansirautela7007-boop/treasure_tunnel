@@ -36,15 +36,10 @@ const LEVELS = [
     name: 'Amber Tunnel', bg: 'bg_level1_amber_tunnel', ledge: 0.579,
     // cavern look: floating platforms, top banner, arrow buttons + CHECK (art in assets/ui_*.webp when present)
     theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP',
-    // VO only as scripted (no extra move prompt); the sign shows only while there is on-screen text
-    voOnly: true, signOnlyWithOst: true,
+    signOnlyWithOst: true, // the sign shows only while there is on-screen text
     keyBox: true, // a hidden box above the right stone: the explorer's jump knocks it into view and the key pops out
-    mapScroll: true, // map puzzles on a parchment scroll; the map shows between puzzles
-    artMap: true, // unlock + between puzzles use the path illustration (dimmed, route lighting up) instead of the map
     // path reveal: assets/path_reveal_ch1.webp (1446×935); the explorer walks this route (art pixels)
     pathArt: { img: 'path_reveal_ch1', w: 1446, h: 935, route: [[53, 359], [173, 353], [268, 313], [303, 343], [338, 376], [418, 393], [463, 443], [508, 508], [558, 527], [598, 559], [678, 566], [758, 579], [798, 510], [878, 519], [958, 505], [1038, 528], [1078, 464], [1098, 448], [1163, 473], [1213, 533], [1298, 561], [1403, 568]] },
-    // no badge: Chamber 1 goes straight on to Chamber 2
-    rule: [['+', 'Add', 'right'], ['−', 'Subtract', 'left']],
     // sign rules card (signRules in game.js): shown before the keys, and again after a 4th wrong try.
     // eq is the example walked on the little number line; move and text explain it
     signRules: [
@@ -60,14 +55,14 @@ const LEVELS = [
     ],
     keysIntro: 'Move in the correct direction to find your keys.',
     keys: [
-      { start: 0, delta: 3, eq: '0 + 3 = ?', cele: 'KEY FOUND!', size: 'small', coach: true, tapStones: true, // how to play: a guided tour of every control
+      { start: 0, delta: 3, eq: '0 + 3 = ?', cele: 'KEY FOUND!', size: 'small', coach: true, // how to play: a guided tour of every control
         vo: 'The next key is at.',
         coachArrows: 'To reach the correct stone, move forward or backward using these arrow buttons.',
         coachJump: 'Jump at the right stone.',
         found: 'Correct! You found it. The key is right here.',
         wrong: ['Oops! No key is here. Try again.', 'Move 3 steps forward from 0.', 'Look closely at where the explorer reaches.'],
         idle: 'Follow the explorer and see where he reaches.' },
-      { start: 7, delta: -4, eq: '(+7) − 4 = ?', cele: '+1 KEY', size: 'small', tapStones: true,
+      { start: 7, delta: -4, eq: '(+7) − 4 = ?', cele: '+1 KEY', size: 'small',
         vo: 'The next key is at.',
         found: 'Correct! You found it. The explorer reached +3. The key is right here.',
         wrong: ['Oops! No key is here. Try again.', 'Move 4 steps backward from 7.', 'Check where the explorer reaches after moving back.'],
@@ -94,7 +89,7 @@ const LEVELS = [
       { who: 'wizard', text: 'Solve the map puzzles to reveal the further path.', vo: true },
     ],
     mysteries: [
-      { start: 7, delta: 6, eq: '(+7) + 6 = ?', tutorial: true, coach: true, // guided tour of the keypad
+      { start: 7, delta: 6, eq: '(+7) + 6 = ?', coach: true, // guided tour of the keypad
         coachLook: 'Check the puzzle.', coachWrite: 'Write the correct answer.',
         correct: 'Correct! You reached +13. Part of the path is revealed!',
         wrong: ['', '', ''] /* the script has no wrong-answer lines for this puzzle */,
@@ -112,7 +107,6 @@ const LEVELS = [
         wrong: ['Oops! Try again.', 'You’re subtracting, so which way should you move?', 'Start at +11 and count 12 steps to the left.'],
         idle: 'Solve the last puzzle to reveal the path.' },
     ],
-    hint3: 'tokens', // third wrong try: the equation's numbers pulse (no number strip)
     unlock: { wizard: null, explorer: null }, // no separate "Yayy!": the explorer's "I got it!…" follows the map
     revealed: { ost: 'NEXT PATH REVEALED!', idle: 'Follow the path to the next chamber.' }, // no lines here in the script
   },
@@ -121,12 +115,8 @@ const LEVELS = [
   {
     name: 'Shadow Chamber', bg: 'bg_level2_crystal_spires', ledge: 0.579,
     // Chamber 1's look on Chamber 2's own background; map puzzles on the scroll
-    theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP', mapScroll: true,
-    artMap: true, // unlock + between puzzles use the path illustration, like Chamber 1
-    voOnly: true, // each key's own line is the instruction (no extra move prompt)
+    theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP',
     keyBox: true, // the hidden key box above the right stone, as in Chamber 1
-    // no badge: the chamber goes straight on
-    rule: [['+(−)', 'Add a negative', 'left']],
     signRules: [
       { eq: '(−2) + (−3)', move: 'Add a negative: move left', text: 'Same signs: add the sizes and keep the − sign.' },
       { eq: '(+3) + (−5)', move: 'Add a negative: move left', text: 'Different signs: the bigger size gives the sign.' },
@@ -194,7 +184,6 @@ const LEVELS = [
         wrong: ['Oops! Try again.', 'You’re adding a negative. Remember the path changes direction.', 'Check the mystery from the start.'],
         idle: 'Solve the mystery.' },
     ],
-    hint3: 'tokens',
     unlock: { wizard: null, explorer: null }, // no lines here in the script
     revealed: { ost: 'NEXT PATH REVEALED!', idle: 'Follow the path to the next chamber.' }, // no lines here in the script
   },
@@ -204,11 +193,7 @@ const LEVELS = [
     name: 'Crystal Cavern', bg: 'bg_level3_lava_sea', stones: 'lava', ledge: 0.579, // lava cavern and lava stones throughout
     // same look as Chamber 1; prompt stays general so it doesn't give away the direction
     theme: 'cavern', step: 128, explorerH: 140, submit: 'JUMP',
-    mapScroll: true, artMap: true, // map puzzles on the scroll; unlock + between puzzles use the path illustration, like Chamber 1
-    voOnly: true, // each key's own line is the instruction (no extra move prompt)
     keyBox: true, // the hidden key box above the right stone, as in Chamber 1
-    // no badge: the chamber goes straight on
-    rule: [['−(−)', 'Subtract a negative', 'right']],
     signRules: [
       { eq: '(+2) − (−3)', move: 'Subtract a negative: move right', text: 'Two minus signs make a plus: − (−3) is the same as + 3.' },
       { eq: '(−5) − (−2)', move: 'Subtract a negative: move right', text: 'Turn − (−2) into + 2, then add.' },
@@ -275,7 +260,6 @@ const LEVELS = [
         wrong: [OOPS_MAP, 'Subtracting a negative changes the direction. Move right.', 'Check the mystery from the start.'],
         idle: 'Solve the mystery.' },
     ],
-    hint3: 'tokens',
     unlock: { wizard: null, explorer: 'Great! Now I know where to go next!' }, // script: only the explorer speaks here
     revealed: { ost: 'TREASURE PATH REVEALED!', idle: 'Follow the path to the treasure.' }, // no lines here in the script
   },
@@ -289,8 +273,6 @@ LEVELS[2].pathArt = { img: 'path_reveal_ch3', w: 1427, h: 945, route: [[46, 473]
 // default unlock lines; a chamber's own `unlock` overrides any of them
 const UNLOCK = {
   wizard: null, explorer: null, // the lines come from each chamber's own `unlock` (script: Game V3)
-  ost: 'MAP PIECE UNLOCKED!',
-  idle: 'Use your keys to unlock the map piece.',
 };
 
 const FINAL_BADGE = { name: 'True Treasure Tunnel Explorer', color: '#F5C542', dark: '#9A6B00', icon: 'chest' };
@@ -301,7 +283,7 @@ const QA_PANEL = true;
 /* Layout editor: E opens it. Edits show in the game while this is true. Set to false before release. */
 const EDITOR = true;
 
-/* Recorded voice-overs (ElevenLabs, 28 Oct; assets/audio/vo_ex_*.m4a and vo_wz_*.m4a, one clip per line): game line → clip.
+/* Recorded voice-overs (ElevenLabs, 28 Oct; assets/audio/vo_ex_* and vo_wz_*, one clip per line, files listed in js/manifest.js): game line → clip.
    A line listed here always uses its recording; any other line uses the browser's voice. */
 const RECORDED_VO = {
  // the explorer
@@ -324,7 +306,7 @@ const RECORDED_VO = {
  "Great! Now I know where to go next!": "vo_ex_017",
  "Whoa! I found it!": "vo_ex_018",
  "Whoa! Best treasure hunt ever. Yayy!": "vo_ex_019",
- // the wizard (ElevenLabs, recorded 28 Oct; assets/audio/vo_wz_*.m4a, one clip per line)
+ // the wizard (ElevenLabs, recorded 28 Oct; assets/audio/vo_wz_*, one clip per line)
  "Hahaha! You just have one piece of map.": "vo_wz_001",
  "Solve the mysteries to reach the treasure.": "vo_wz_002",
  "Watch carefully! The tunnel has a little trick.": "vo_wz_003",
@@ -353,7 +335,6 @@ const RECORDED_VO = {
  "Move 7 steps backward from −7.": "vo_wz_026",
  "Look where the explorer reaches after 7 steps.": "vo_wz_027",
  "The last key is waiting! Follow the explorer carefully.": "vo_wz_028",
- "Use your keys to unlock the map piece.": "vo_wz_029",
  "Hahaha! Only one piece of map found! Two more to go.": "vo_wz_030",
  "Solve the map puzzles to reveal the further path.": "vo_wz_031",
  "Check the puzzle.": "vo_wz_032",

@@ -138,9 +138,9 @@ const Sound = (() => {
     }, 2600);
   }
 
-  /* background music: "Treasure Hunter" by TAD (CC0, opengameart.org/content/treasure-hunter), assets/audio/bgm_treasure_hunter.m4a.
-     Played through Web Audio so the loop has no gap; the silence the encoder adds at each end is trimmed off. */
-  const MUSIC_SRC = () => (window.AUDIO && window.AUDIO.bgm_treasure_hunter) || 'assets/audio/bgm_treasure_hunter.m4a';
+  /* background music: "Treasure Hunter" by TAD (CC0, opengameart.org/content/treasure-hunter), bgm_treasure_hunter in the manifest.
+     Played through Web Audio so the loop has no gap; the silence the encoder adds at each end is trimmed off.
+     It starts once the preloader has it (no second download); if the local copy won't decode, the file itself is tried. */
   function musicLevel(t = 0.6) { if (ctx && mus) mus.gain.setTargetAtTime(on && musicWanted && !held ? musicVol * (ducked ? DUCK : 1) : 0, ctx.currentTime, t); }
   async function startMusic() {
     musicWanted = true;
@@ -149,7 +149,9 @@ const Sound = (() => {
     if (music) return;
     music = 'loading';
     try {
-      const buf = await ctx.decodeAudioData(await (await fetch(MUSIC_SRC())).arrayBuffer());
+      const decode = async url => ctx.decodeAudioData(await (await fetch(url)).arrayBuffer());
+      const url = await Preload.get('bgm_treasure_hunter');
+      const buf = await decode(url).catch(e => { if (Preload.isBlob(url)) return decode(Preload.original(url)); throw e; });
       const d = buf.getChannelData(0), loud = i => Math.abs(d[i]) > 0.002;
       let a = 0, b = d.length - 1;
       while (a < d.length && !loud(a)) a++;
@@ -207,9 +209,11 @@ const Voice = (() => {
       .replace(/Hahaha/g, 'Ha ha ha').replace(/Wohoo/g, 'Woo hoo').replace(/Yayy/g, 'Yay');
   }
 
-  // Recorded ElevenLabs clips (assets/audio/<clip>.mp3). Falls back to browser speech if a file is missing.
+  // Recorded ElevenLabs clips (named in the manifest): the preloaded local copy when there is one.
+  // Falls back to browser speech if a clip can't be played at all.
   let clipEl = null, cueTimers = [];
-  const CLIP = n => (window.AUDIO && window.AUDIO[n]) || `assets/audio/${n}.${n.startsWith('vo_') ? 'm4a' : 'mp3'}`;
+  const CLIP = n => Preload.url(n);
+  // (a stopped clip's watchdog keeps running: it still finishes the line, so nothing waiting on it is left stuck)
   function stopClip() { if (clipEl) { clipEl.onended = clipEl.onerror = clipEl.ontimeupdate = null; clipEl.pause(); clipEl = null; } }
   function clearCues() { cueTimers.forEach(clearTimeout); cueTimers = []; }
 
@@ -244,14 +248,24 @@ const Voice = (() => {
           // cues fire at their word's share of the part actually played (a trimmed clip is shorter than its file)
           const cueTick = () => { const s0 = it.start || 0, len = (it.end || a.duration) - s0; if (len > 0 && list.length === 1) pending.slice().forEach(c => { if ((a.currentTime - s0) / len >= c.at / spoken.length) fire(c); }); };
           a.ontimeupdate = cueTick; const cueT = setInterval(() => { if (clipEl !== a || a.ended) return clearInterval(cueT); if (!a.paused) cueTick(); }, 60);
-          a.onended = () => { if (clipEl !== a) return; if (i + 1 < list.length) play(i + 1); else { pending.slice().forEach(fire); fin(); } };
+          a.onended = () => { if (clipEl !== a) return; clearTimeout(a._dog); if (i + 1 < list.length) play(i + 1); else { pending.slice().forEach(fire); fin(); } };
           if (it.end) { const t = setInterval(() => { if (clipEl !== a) return clearInterval(t); if (a.currentTime >= it.end) { clearInterval(t); a.pause(); a.onended(); } }, 30); } // stop at the end of the part we want
-          a.onerror = () => { if (clipEl === a) { clipEl = null; sayLine(text, who, null, null).then(fin); } };
+          // watchdog: the line moves on even if the clip never reports its end, or was stopped (voice turned off
+          // mid-line). 15 s until the clip's length is known, then its length plus 3 s; it runs on the game clock, so a
+          // paused game doesn't trip it
+          const arm = ms => { clearTimeout(a._dog); a._dog = setTimeout(() => { if (clipEl === a) { a.pause(); a.onended(); } else fin(); }, ms); };
+          arm(15000);
+          a.addEventListener('loadedmetadata', () => { const len = (it.end || a.duration) - (it.start || 0); if (isFinite(len) && len > 0) arm(len * 1000 + 3000); });
+          // a local copy that won't play is retried once from the file itself; after that, the browser reads the line
+          a.onerror = () => {
+            if (clipEl !== a) return;
+            if (!a._retried && Preload.isBlob(a.src)) { a._retried = true; a.src = Preload.original(a.src); const q = a.play(); if (q && q.catch) q.catch(() => a.onerror && a.onerror()); return; }
+            clearTimeout(a._dog); clipEl = null; sayLine(text, who, null, null).then(fin);
+          };
           const p = a.play(); if (p && p.catch) p.catch(() => a.onerror && a.onerror());
         };
         if (synth) synth.cancel();
         play(0);
-        setTimeout(fin, 15000 * list.length);
         return;
       }
       if (!synth) { setTimeout(res, Math.min(est, 2600)); return; }
