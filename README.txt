@@ -1,8 +1,8 @@
 TREASURE TUNNEL – Integers adventure (HTML, CSS, JavaScript)
 
 Serve the folder over HTTP (e.g. python3 -m http.server) and open index.html; keep the folders together.
-A loading bar fills while every image and sound downloads, then Start appears. Opened straight from disk
-(file://) the browser blocks that download, so Start appears at once and files load as they're needed.
+Start appears at once; every image and sound downloads quietly in the background (opened straight from disk,
+file://, files simply load as they're needed).
 For a single file you can share, use treasure_tunnel.html (everything is built in).
 
 FILES
@@ -10,7 +10,7 @@ index.html        Page structure
 css/style.css     All styles and micro-animations
 js/manifest.js    Generated: every image and sound with its size (run tools/build.py; don't edit)
 js/data.js        Every line of story and game script, levels and puzzles (edit text here)
-js/preload.js     Loading bar: fetches every asset before Start appears
+js/preload.js     Fetches every asset in the background, in chunks in play order (no loading screen)
 js/audio.js       Sound effects (made in the browser), music and voice-over playback
 js/game.js        Game engine: story scenes, number line, keys, map mysteries, effects
 js/editor.js      Layout editor (testing only)

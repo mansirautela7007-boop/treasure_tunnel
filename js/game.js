@@ -740,7 +740,7 @@ async function playScenes(list) {
 }
 
 async function runStory() {
-  QA.at('story'); reached('story');
+  QA.at('story'); reached('story'); Preload.want('story'); // this part's files download next (js/preload.js)
   await playScenes(STORY_INTRO); // how to play is taught inside Chamber 1, key 1 (Coach)
 }
 
@@ -1390,7 +1390,7 @@ async function signRules(L, puzzle = null) {
 const STEPS = ['teach', 'keys', 'unlock', 'map', 'reveal'];
 async function runLevel(L, step = 'teach', i = 0) {
   const from = STEPS.indexOf(step), lvl = LEVELS[L];
-  S.level = L; S.levelGems[L] = 0; reached(String(L));
+  S.level = L; S.levelGems[L] = 0; reached(String(L)); Preload.want(L);
   QA.at(`${L}:${step}:${i}`); // where the player is from the start, even while the step's intro lines play (back counts on it)
   resetUI();
   stage.classList.toggle('theme-cavern', lvl.theme === 'cavern');
@@ -1408,7 +1408,7 @@ async function runLevel(L, step = 'teach', i = 0) {
 }
 
 async function runEnding() {
-  resetUI(); QA.at('end'); reached('end');
+  resetUI(); QA.at('end'); reached('end'); Preload.want('end');
   await playScenes(STORY_END);
   const f = $('#final');
   f.querySelector('.badge-art').innerHTML = badgeSVG(FINAL_BADGE);
@@ -1418,7 +1418,6 @@ async function runEnding() {
 
 /* ---------- chapters ---------- */
 async function goChapter(c, step = 'teach', i = 0) {
-  if (!Preload.done) await Preload.ready; // every way in (Start, the menu, QA, keys) waits for the files
   if (Clock.paused) closeMenu();
   RUN++; resetUI(); S.streak = 0; // a run of right answers carries on from chamber to chamber
   try {
@@ -1599,7 +1598,6 @@ $('#title .cv-motes').innerHTML = Array.from({ length: 26 }, (_, i) => {
 }).join('');
 function showTitle() {
   if (Clock.paused) closeMenu();
-  $('#btnStart').style.animationDelay = ''; // the Start button pops in with the cover's entrance
   $('#title').classList.remove('go'); $('#warp').classList.remove('on', 'open'); // a Start dive cut short
   RUN++; resetUI(); setBg('bg_entrance'); backdrop('cover_bg'); QA.at(''); // the cover's own art around the stage
   retrigger($('#title'), 'on'); // replays the entrance each time the cover opens
@@ -1637,8 +1635,8 @@ $('#title .cv-burst').innerHTML = '<b></b>' + Array.from({ length: 18 }, (_, i) 
   `<i style="--a:${(i * 20 + Math.random() * 12).toFixed(0)}deg;--d:${(150 + Math.random() * 130).toFixed(0)}px;--t:${(Math.random() * .08).toFixed(2)}s"></i>`).join('');
 $('#btnStart').addEventListener('click', () => {
   const title = $('#title'), warp = $('#warp');
-  if (!Preload.done || title.classList.contains('go')) return;
-  $('#btnStart').blur(); $('#btnStart').style.animationDelay = ''; // its pop-in delay would hold back the burst
+  if (title.classList.contains('go')) return;
+  $('#btnStart').blur();
   Sound.init(); Sound.music(); Sound.fx.fanfare(); Voice.stop();
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, run = RUN;
   title.classList.add('go');
@@ -1652,23 +1650,6 @@ $('#btnStart').addEventListener('click', () => {
   }, calm ? 300 : 1550);
 });
 
-/* ---------- loading: a progress bar sits where Start will be; Start pops in once every file is here ---------- */
-{
-  const bar = $('#loadBar'), fill = bar.querySelector('.cv-load-fill'), pct = bar.querySelector('.cv-load-txt b'), shownAt = performance.now();
-  let raf = 0, last = 0;
-  Preload.onProgress(p => {
-    last = p; if (raf) return;
-    raf = requestAnimationFrame(() => { raf = 0; const n = Math.floor(last * 100); fill.style.transform = `scaleX(${last})`; pct.textContent = `${n}%`; bar.setAttribute('aria-valuenow', n); });
-  });
-  Preload.ready.then(() => {
-    // Start keeps its place in the cover's entrance (it pops in 1.35 s after the cover opens), or pops in at once if
-    // loading took longer than that
-    const left = Math.max(0, 1350 - (performance.now() - shownAt));
-    $('#btnStart').style.animationDelay = `${left}ms`;
-    $('#title').classList.add('ready');
-  });
-}
-
 /* ---------- optional UI art: used when the file exists, drawn in CSS otherwise ---------- */
 ['ui_platform', 'ui_equation_sign', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text', 'ui_keybox', 'ui_platform_lava', 'chest_open_sheet', 'explorer_run_sheet', 'ui_btn_pause', 'ui_btn_back'].forEach(n => {
   Preload.get(n).then(url => {
@@ -1679,7 +1660,7 @@ $('#btnStart').addEventListener('click', () => {
   });
 });
 
-/* ---------- boot (every image and sound is fetched by the preloader, js/preload.js) ---------- */
+/* ---------- boot (every image and sound is fetched in the background by js/preload.js) ---------- */
 fit(); paintToggles(); showTitle();
 checkAway(); // opened in a background tab or on an upright phone: it starts once it is looked at, sideways
 if (document.fonts) document.fonts.ready.then(() => Tablet.fit()); // re-fit once the game font has loaded

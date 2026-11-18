@@ -1,7 +1,9 @@
-/* Preloader: every image and sound in js/manifest.js is fetched before the Start button appears (game.js shows the
-   progress bar in its place).
-   - The cover art (what's on screen while loading) first, then the rest smallest first, so nothing small waits
-     behind the music; at most 5 transfers at once.
+/* Preloader: every image and sound in js/manifest.js is fetched in the background from the moment the page opens
+   (no loading screen: Start is there at once, and a file not here yet is used from its own URL).
+   - In chunks, in the order they're played: the cover (and its title line), then the story together with what
+     every part shares (sprites, buttons, the music), chamber 1, chamber 2, chamber 3, the ending. A chunk is what that part's script (data.js)
+     names: its pictures and the recordings of its lines (RECORDED_VO). Smallest first within a chunk; at most
+     5 transfers at once. Jumping ahead (the menu, Back, QA) moves that part's chunk to the front: Preload.want().
    - Progress is counted in bytes as they stream in, weighted by each file's real size (from the manifest, refined by
      the server's Content-Length), and never goes backwards.
    - A finished file becomes a blob: URL, so "loaded" means it is local: ASSET() and the voice/music players take the
@@ -62,11 +64,29 @@ const Preload = (() => {
       finish(f, null); // failed, stalled or blocked: the file keeps its own URL
     } finally { clearTimeout(stall); }
   }
+  // chunks: each part of the game claims the files its script names (the earliest part wins a shared one);
+  // whatever no part names (sprites, buttons, the music) is the shared chunk: needed from the story on, so it loads with it
+  const uses = data => {
+    const out = new Set();
+    const walk = v => {
+      if (typeof v === 'string') { if (files[v]) out.add(v); const clip = typeof RECORDED_VO !== 'undefined' && RECORDED_VO[v]; if (clip && files[clip]) out.add(clip); }
+      else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+    };
+    walk(data); return out;
+  };
+  const levels = typeof LEVELS !== 'undefined' ? LEVELS : [];
+  const parts = [['story', typeof STORY_INTRO !== 'undefined' && STORY_INTRO], ...levels.map((l, i) => [i, l]), ['end', [typeof STORY_END !== 'undefined' && STORY_END, typeof FINAL_BADGE !== 'undefined' && FINAL_BADGE]]];
+  const RANK = { story: 1, end: 3 + levels.length }; levels.forEach((_, i) => { RANK[i] = 3 + i; });
+  all.forEach(f => { f.part = f.name.startsWith('cover_') || f.name === 'vo_title' ? 'cover' : null; });
+  for (const [part, data] of parts) uses(data).forEach(n => { if (!files[n].part) files[n].part = part; });
+  all.forEach(f => { f.part = f.part ?? 'shared'; f.rank = f.part === 'cover' ? 0 : f.part === 'shared' ? 1 : RANK[f.part]; f.boost = 0; });
+  let queue = [], boosts = 0;
+  const order = () => queue.sort((a, b) => b.boost - a.boost || a.rank - b.rank || a.bytes - b.bytes);
+
   function start() {
     // inline files (single-file build) are already here
     all.filter(f => f.inline).forEach(f => finish(f, null));
-    const cover = f => f.name.startsWith('cover_') ? 0 : 1;
-    const queue = all.filter(f => !f.done).sort((a, b) => cover(a) - cover(b) || a.bytes - b.bytes);
+    queue = all.filter(f => !f.done); order();
     if (!queue.length) { report(); return; }
     const worker = async () => { while (queue.length) await fetchOne(queue.shift()); };
     for (let i = 0; i < 5; i++) worker();
@@ -75,6 +95,15 @@ const Preload = (() => {
   const api = {
     ogg: OGG,
     ready,
+    // the player is about to play this part ('story', a chamber's index, 'end'): its chunk downloads next
+    want(part) {
+      const b = ++boosts; let n = 0;
+      queue.forEach(f => { if (f.part === part || f.part === 'shared') { f.boost = b; n++; } });
+      if (n) order();
+    },
+    partOf: name => files[name] && files[name].part,
+    // which chunk each file is in, and each chunk's size (for testing)
+    get chunks() { const c = {}; all.forEach(f => { const k = c[f.part] = c[f.part] || { files: 0, bytes: 0, done: 0 }; k.files++; k.bytes += f.bytes; k.done += f.done ? 1 : 0; }); return c; },
     get done() { return finished === all.length; },
     get progress() { return shown; },
     onProgress(fn) { listeners.push(fn); fn(shown, finished, all.length); },

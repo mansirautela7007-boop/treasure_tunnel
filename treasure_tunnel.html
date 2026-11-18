@@ -696,22 +696,6 @@ body::before { content: ''; position: fixed; inset: -60px; pointer-events: none;
 #btnStart.cv-start:focus-visible { outline: none; }
 #btnStart.cv-start:focus-visible .cv-pulse { filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 6px #fff) drop-shadow(0 0 18px rgba(80,200,255,.9)); }
 #btnStart.cv-start .cv-shine { animation-delay: 2.6s; animation-duration: 3.2s; }
-/* while the game loads (js/preload.js): Start is hidden and a gold-framed progress bar sits in its place;
-   once everything is here the bar fades and Start pops in (its delay is set in game.js) */
-#title:not(.ready) #btnStart { visibility: hidden; animation: none; pointer-events: none; }
-.cv-load { left: 440px; top: 520px; width: 400px; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none;
-  transition: opacity .35s ease, transform .35s ease; animation: cvPop .6s .5s cubic-bezier(.2,1.5,.4,1) both; }
-#title.ready .cv-load { opacity: 0; transform: scale(.9); visibility: hidden; transition: opacity .35s ease, transform .35s ease, visibility 0s .35s; }
-.cv-load-track { position: relative; width: 100%; height: 26px; border-radius: 16px; overflow: hidden; padding: 4px;
-  background: linear-gradient(#5a3a1c, #3a2410); border: 3px solid #e2a84b; box-shadow: inset 0 2px 0 rgba(255,255,255,.2), 0 4px 12px rgba(0,0,0,.5); }
-.cv-load-fill { display: block; height: 100%; border-radius: 10px; transform: scaleX(0); transform-origin: 0 50%; transition: transform .25s ease-out;
-  background: linear-gradient(#fff3a8, #ffd54a 45%, #e39b1f); box-shadow: 0 0 12px rgba(255,213,74,.8);
-  /* a soft shine travelling along the gold */
-  background-image: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.55) 45%, transparent 60%), linear-gradient(#fff3a8, #ffd54a 45%, #e39b1f);
-  background-size: 200% 100%, 100% 100%; animation: cvLoadShine 1.6s linear infinite; }
-@keyframes cvLoadShine { from { background-position: 150% 0, 0 0; } to { background-position: -50% 0, 0 0; } }
-.cv-load-txt { margin: 0; font: 22px 'Lilita One', sans-serif; color: #fff3c4; letter-spacing: .02em; text-shadow: 0 2px 0 #3a2410, 0 0 10px rgba(0,0,0,.8); }
-.cv-load-txt b { font-weight: 400; color: var(--gold); }
 /* each piece of cover art fades in as it arrives */
 #title.cover img[data-asset] { opacity: 0; transition: opacity .4s ease; }
 #title.cover img[data-asset].in { opacity: 1; }
@@ -1107,11 +1091,6 @@ body::before { content: ''; position: fixed; inset: -60px; pointer-events: none;
       <button id="btnStart" class="cv-start" aria-label="Start">
         <span class="cv-pulse"><img data-asset="cover_start" alt=""><i class="cv-shine"></i></span>
       </button>
-      <!-- in Start's place until every file is loaded (js/preload.js) -->
-      <div id="loadBar" class="cv-load" role="progressbar" aria-label="Loading the game" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div class="cv-load-track"><i class="cv-load-fill"></i></div>
-        <p class="cv-load-txt">Loading the adventure… <b>0%</b></p>
-      </div>
       <!-- Start's burst of gold when tapped (rays and sparks, game.js) -->
       <div class="cv-burst" aria-hidden="true"></div>
     </div>
@@ -1763,10 +1742,12 @@ const RECORDED_VO = {
 };
 </script>
 <script>
-/* Preloader: every image and sound in js/manifest.js is fetched before the Start button appears (game.js shows the
-   progress bar in its place).
-   - The cover art (what's on screen while loading) first, then the rest smallest first, so nothing small waits
-     behind the music; at most 5 transfers at once.
+/* Preloader: every image and sound in js/manifest.js is fetched in the background from the moment the page opens
+   (no loading screen: Start is there at once, and a file not here yet is used from its own URL).
+   - In chunks, in the order they're played: the cover (and its title line), then the story together with what
+     every part shares (sprites, buttons, the music), chamber 1, chamber 2, chamber 3, the ending. A chunk is what that part's script (data.js)
+     names: its pictures and the recordings of its lines (RECORDED_VO). Smallest first within a chunk; at most
+     5 transfers at once. Jumping ahead (the menu, Back, QA) moves that part's chunk to the front: Preload.want().
    - Progress is counted in bytes as they stream in, weighted by each file's real size (from the manifest, refined by
      the server's Content-Length), and never goes backwards.
    - A finished file becomes a blob: URL, so "loaded" means it is local: ASSET() and the voice/music players take the
@@ -1827,11 +1808,29 @@ const Preload = (() => {
       finish(f, null); // failed, stalled or blocked: the file keeps its own URL
     } finally { clearTimeout(stall); }
   }
+  // chunks: each part of the game claims the files its script names (the earliest part wins a shared one);
+  // whatever no part names (sprites, buttons, the music) is the shared chunk: needed from the story on, so it loads with it
+  const uses = data => {
+    const out = new Set();
+    const walk = v => {
+      if (typeof v === 'string') { if (files[v]) out.add(v); const clip = typeof RECORDED_VO !== 'undefined' && RECORDED_VO[v]; if (clip && files[clip]) out.add(clip); }
+      else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+    };
+    walk(data); return out;
+  };
+  const levels = typeof LEVELS !== 'undefined' ? LEVELS : [];
+  const parts = [['story', typeof STORY_INTRO !== 'undefined' && STORY_INTRO], ...levels.map((l, i) => [i, l]), ['end', [typeof STORY_END !== 'undefined' && STORY_END, typeof FINAL_BADGE !== 'undefined' && FINAL_BADGE]]];
+  const RANK = { story: 1, end: 3 + levels.length }; levels.forEach((_, i) => { RANK[i] = 3 + i; });
+  all.forEach(f => { f.part = f.name.startsWith('cover_') || f.name === 'vo_title' ? 'cover' : null; });
+  for (const [part, data] of parts) uses(data).forEach(n => { if (!files[n].part) files[n].part = part; });
+  all.forEach(f => { f.part = f.part ?? 'shared'; f.rank = f.part === 'cover' ? 0 : f.part === 'shared' ? 1 : RANK[f.part]; f.boost = 0; });
+  let queue = [], boosts = 0;
+  const order = () => queue.sort((a, b) => b.boost - a.boost || a.rank - b.rank || a.bytes - b.bytes);
+
   function start() {
     // inline files (single-file build) are already here
     all.filter(f => f.inline).forEach(f => finish(f, null));
-    const cover = f => f.name.startsWith('cover_') ? 0 : 1;
-    const queue = all.filter(f => !f.done).sort((a, b) => cover(a) - cover(b) || a.bytes - b.bytes);
+    queue = all.filter(f => !f.done); order();
     if (!queue.length) { report(); return; }
     const worker = async () => { while (queue.length) await fetchOne(queue.shift()); };
     for (let i = 0; i < 5; i++) worker();
@@ -1840,6 +1839,15 @@ const Preload = (() => {
   const api = {
     ogg: OGG,
     ready,
+    // the player is about to play this part ('story', a chamber's index, 'end'): its chunk downloads next
+    want(part) {
+      const b = ++boosts; let n = 0;
+      queue.forEach(f => { if (f.part === part || f.part === 'shared') { f.boost = b; n++; } });
+      if (n) order();
+    },
+    partOf: name => files[name] && files[name].part,
+    // which chunk each file is in, and each chunk's size (for testing)
+    get chunks() { const c = {}; all.forEach(f => { const k = c[f.part] = c[f.part] || { files: 0, bytes: 0, done: 0 }; k.files++; k.bytes += f.bytes; k.done += f.done ? 1 : 0; }); return c; },
     get done() { return finished === all.length; },
     get progress() { return shown; },
     onProgress(fn) { listeners.push(fn); fn(shown, finished, all.length); },
@@ -2925,7 +2933,7 @@ async function playScenes(list) {
 }
 
 async function runStory() {
-  QA.at('story'); reached('story');
+  QA.at('story'); reached('story'); Preload.want('story'); // this part's files download next (js/preload.js)
   await playScenes(STORY_INTRO); // how to play is taught inside Chamber 1, key 1 (Coach)
 }
 
@@ -3575,7 +3583,7 @@ async function signRules(L, puzzle = null) {
 const STEPS = ['teach', 'keys', 'unlock', 'map', 'reveal'];
 async function runLevel(L, step = 'teach', i = 0) {
   const from = STEPS.indexOf(step), lvl = LEVELS[L];
-  S.level = L; S.levelGems[L] = 0; reached(String(L));
+  S.level = L; S.levelGems[L] = 0; reached(String(L)); Preload.want(L);
   QA.at(`${L}:${step}:${i}`); // where the player is from the start, even while the step's intro lines play (back counts on it)
   resetUI();
   stage.classList.toggle('theme-cavern', lvl.theme === 'cavern');
@@ -3593,7 +3601,7 @@ async function runLevel(L, step = 'teach', i = 0) {
 }
 
 async function runEnding() {
-  resetUI(); QA.at('end'); reached('end');
+  resetUI(); QA.at('end'); reached('end'); Preload.want('end');
   await playScenes(STORY_END);
   const f = $('#final');
   f.querySelector('.badge-art').innerHTML = badgeSVG(FINAL_BADGE);
@@ -3603,7 +3611,6 @@ async function runEnding() {
 
 /* ---------- chapters ---------- */
 async function goChapter(c, step = 'teach', i = 0) {
-  if (!Preload.done) await Preload.ready; // every way in (Start, the menu, QA, keys) waits for the files
   if (Clock.paused) closeMenu();
   RUN++; resetUI(); S.streak = 0; // a run of right answers carries on from chamber to chamber
   try {
@@ -3784,7 +3791,6 @@ $('#title .cv-motes').innerHTML = Array.from({ length: 26 }, (_, i) => {
 }).join('');
 function showTitle() {
   if (Clock.paused) closeMenu();
-  $('#btnStart').style.animationDelay = ''; // the Start button pops in with the cover's entrance
   $('#title').classList.remove('go'); $('#warp').classList.remove('on', 'open'); // a Start dive cut short
   RUN++; resetUI(); setBg('bg_entrance'); backdrop('cover_bg'); QA.at(''); // the cover's own art around the stage
   retrigger($('#title'), 'on'); // replays the entrance each time the cover opens
@@ -3822,8 +3828,8 @@ $('#title .cv-burst').innerHTML = '<b></b>' + Array.from({ length: 18 }, (_, i) 
   `<i style="--a:${(i * 20 + Math.random() * 12).toFixed(0)}deg;--d:${(150 + Math.random() * 130).toFixed(0)}px;--t:${(Math.random() * .08).toFixed(2)}s"></i>`).join('');
 $('#btnStart').addEventListener('click', () => {
   const title = $('#title'), warp = $('#warp');
-  if (!Preload.done || title.classList.contains('go')) return;
-  $('#btnStart').blur(); $('#btnStart').style.animationDelay = ''; // its pop-in delay would hold back the burst
+  if (title.classList.contains('go')) return;
+  $('#btnStart').blur();
   Sound.init(); Sound.music(); Sound.fx.fanfare(); Voice.stop();
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, run = RUN;
   title.classList.add('go');
@@ -3837,23 +3843,6 @@ $('#btnStart').addEventListener('click', () => {
   }, calm ? 300 : 1550);
 });
 
-/* ---------- loading: a progress bar sits where Start will be; Start pops in once every file is here ---------- */
-{
-  const bar = $('#loadBar'), fill = bar.querySelector('.cv-load-fill'), pct = bar.querySelector('.cv-load-txt b'), shownAt = performance.now();
-  let raf = 0, last = 0;
-  Preload.onProgress(p => {
-    last = p; if (raf) return;
-    raf = requestAnimationFrame(() => { raf = 0; const n = Math.floor(last * 100); fill.style.transform = `scaleX(${last})`; pct.textContent = `${n}%`; bar.setAttribute('aria-valuenow', n); });
-  });
-  Preload.ready.then(() => {
-    // Start keeps its place in the cover's entrance (it pops in 1.35 s after the cover opens), or pops in at once if
-    // loading took longer than that
-    const left = Math.max(0, 1350 - (performance.now() - shownAt));
-    $('#btnStart').style.animationDelay = `${left}ms`;
-    $('#title').classList.add('ready');
-  });
-}
-
 /* ---------- optional UI art: used when the file exists, drawn in CSS otherwise ---------- */
 ['ui_platform', 'ui_equation_sign', 'ui_controls', 'ui_scroll', 'ui_key_sign', 'ui_key_digit', 'ui_key_delete', 'ui_btn_check_text', 'ui_keybox', 'ui_platform_lava', 'chest_open_sheet', 'explorer_run_sheet', 'ui_btn_pause', 'ui_btn_back'].forEach(n => {
   Preload.get(n).then(url => {
@@ -3864,7 +3853,7 @@ $('#btnStart').addEventListener('click', () => {
   });
 });
 
-/* ---------- boot (every image and sound is fetched by the preloader, js/preload.js) ---------- */
+/* ---------- boot (every image and sound is fetched in the background by js/preload.js) ---------- */
 fit(); paintToggles(); showTitle();
 checkAway(); // opened in a background tab or on an upright phone: it starts once it is looked at, sideways
 if (document.fonts) document.fonts.ready.then(() => Tablet.fit()); // re-fit once the game font has loaded

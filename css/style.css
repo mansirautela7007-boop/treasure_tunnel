@@ -685,22 +685,6 @@ body::before { content: ''; position: fixed; inset: -60px; pointer-events: none;
 #btnStart.cv-start:focus-visible { outline: none; }
 #btnStart.cv-start:focus-visible .cv-pulse { filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 6px #fff) drop-shadow(0 0 18px rgba(80,200,255,.9)); }
 #btnStart.cv-start .cv-shine { animation-delay: 2.6s; animation-duration: 3.2s; }
-/* while the game loads (js/preload.js): Start is hidden and a gold-framed progress bar sits in its place;
-   once everything is here the bar fades and Start pops in (its delay is set in game.js) */
-#title:not(.ready) #btnStart { visibility: hidden; animation: none; pointer-events: none; }
-.cv-load { left: 440px; top: 520px; width: 400px; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none;
-  transition: opacity .35s ease, transform .35s ease; animation: cvPop .6s .5s cubic-bezier(.2,1.5,.4,1) both; }
-#title.ready .cv-load { opacity: 0; transform: scale(.9); visibility: hidden; transition: opacity .35s ease, transform .35s ease, visibility 0s .35s; }
-.cv-load-track { position: relative; width: 100%; height: 26px; border-radius: 16px; overflow: hidden; padding: 4px;
-  background: linear-gradient(#5a3a1c, #3a2410); border: 3px solid #e2a84b; box-shadow: inset 0 2px 0 rgba(255,255,255,.2), 0 4px 12px rgba(0,0,0,.5); }
-.cv-load-fill { display: block; height: 100%; border-radius: 10px; transform: scaleX(0); transform-origin: 0 50%; transition: transform .25s ease-out;
-  background: linear-gradient(#fff3a8, #ffd54a 45%, #e39b1f); box-shadow: 0 0 12px rgba(255,213,74,.8);
-  /* a soft shine travelling along the gold */
-  background-image: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.55) 45%, transparent 60%), linear-gradient(#fff3a8, #ffd54a 45%, #e39b1f);
-  background-size: 200% 100%, 100% 100%; animation: cvLoadShine 1.6s linear infinite; }
-@keyframes cvLoadShine { from { background-position: 150% 0, 0 0; } to { background-position: -50% 0, 0 0; } }
-.cv-load-txt { margin: 0; font: 22px 'Lilita One', sans-serif; color: #fff3c4; letter-spacing: .02em; text-shadow: 0 2px 0 #3a2410, 0 0 10px rgba(0,0,0,.8); }
-.cv-load-txt b { font-weight: 400; color: var(--gold); }
 /* each piece of cover art fades in as it arrives */
 #title.cover img[data-asset] { opacity: 0; transition: opacity .4s ease; }
 #title.cover img[data-asset].in { opacity: 1; }
